@@ -33,7 +33,10 @@ const createFaculty = async (req, res) => {
         });
         res.status(201).json({ message: 'Faculty created', faculty: { username, fullName } });
     } catch (error) {
-        res.status(400).json({ message: 'Username already exists or other error', error: error.message });
+        if (error.code === 'P2002') {
+            return res.status(400).json({ message: 'A faculty with this username already exists.' });
+        }
+        res.status(400).json({ message: 'Error creating faculty', error: error.message });
     }
 };
 
@@ -453,24 +456,65 @@ const approveMarks = async (req, res) => {
 // --- Student Management ---
 
 const createStudent = async (req, res) => {
-    const { registerNumber, name, department, year, section, semester } = req.body;
+    let { registerNumber, name, department, year, section, semester } = req.body;
+    console.log('[DEBUG] createStudent request:', req.body);
     try {
+        const parsedYear = parseInt(year);
+        // Requirement: First Year students must NOT be assigned to any department.
+        if (parsedYear === 1) {
+            department = null;
+        }
+
         const student = await prisma.student.create({
             data: {
                 registerNumber,
                 name,
                 department,
-                year: parseInt(year),
+                year: parsedYear,
                 section,
                 semester: parseInt(semester)
             }
         });
         res.status(201).json(student);
     } catch (error) {
+        console.error('[ERROR] createStudent failed:', error);
+        if (error.code === 'P2002') {
+            return res.status(400).json({ message: 'A student with this Register Number already exists.' });
+        }
         res.status(400).json({ message: error.message });
     }
 }
 
+
+const updateStudent = async (req, res) => {
+    const { id } = req.params;
+    let { registerNumber, name, department, year, section, semester } = req.body;
+    try {
+        const studentId = parseInt(id);
+        const parsedYear = parseInt(year);
+
+        // Enforce First Year rules if year is changed to 1
+        if (parsedYear === 1) {
+            department = null;
+        }
+
+        const student = await prisma.student.update({
+            where: { id: studentId },
+            data: {
+                registerNumber,
+                name,
+                department,
+                year: parsedYear,
+                section,
+                semester: parseInt(semester)
+            }
+        });
+        res.json(student);
+    } catch (error) {
+        console.error('[ERROR] updateStudent failed:', error);
+        res.status(400).json({ message: error.message });
+    }
+}
 
 const deleteStudent = async (req, res) => {
     const { id } = req.params;
@@ -524,14 +568,20 @@ const getDepartments = async (req, res) => {
             }
 
             // Stats Aggregation
+            const isGeneral = dept.name === 'First Year (General)';
+
             const studentCount = await prisma.student.count({
-                where: { department: dept.name }
+                where: isGeneral
+                    ? { OR: [{ department: dept.name }, { department: null }, { department: '' }], year: 1 }
+                    : { department: dept.name }
             });
             const facultyCount = await prisma.user.count({
                 where: { department: dept.name, role: 'FACULTY' }
             });
             const subjectCount = await prisma.subject.count({
-                where: { department: dept.name }
+                where: isGeneral
+                    ? { OR: [{ department: dept.name }, { department: null }, { department: '' }], type: 'COMMON' }
+                    : { department: dept.name }
             });
 
             return {
@@ -553,13 +603,15 @@ const getDepartments = async (req, res) => {
 };
 
 const createDepartment = async (req, res) => {
-    const { name, code, hodId } = req.body;
+    const { name, code, hodId, sections, years } = req.body;
     try {
         const dept = await prisma.department.create({
             data: {
                 name,
                 code,
-                hodId: hodId ? parseInt(hodId) : null
+                hodId: hodId ? parseInt(hodId) : null,
+                sections: sections || 'A,B,C',
+                years: years || '2,3,4'
             }
         });
         res.status(201).json(dept);
@@ -571,14 +623,16 @@ const createDepartment = async (req, res) => {
 
 const updateDepartment = async (req, res) => {
     const { id } = req.params;
-    const { name, code, hodId } = req.body;
+    const { name, code, hodId, sections, years } = req.body;
     try {
         const dept = await prisma.department.update({
             where: { id: parseInt(id) },
             data: {
                 name,
                 code,
-                hodId: hodId ? parseInt(hodId) : null
+                hodId: hodId ? parseInt(hodId) : null,
+                sections: sections,
+                years: years
             }
         });
         res.json(dept);
@@ -788,19 +842,41 @@ const deleteSubstitution = async (req, res) => {
 // --- Subject Management ---
 
 const createSubject = async (req, res) => {
-    const { code, name, shortName, department, semester } = req.body;
+    let { code, name, shortName, department, semester, type } = req.body;
+    console.log('[DEBUG] createSubject request:', req.body);
     try {
+        const parsedSemester = parseInt(semester);
+        const subjectType = type || "DEPARTMENT";
+
+        if (subjectType === "COMMON") {
+            // Requirement: COMMON -> First Year subjects (Sem 1 or 2), Department ID must be NULL
+            if (parsedSemester > 2) {
+                return res.status(400).json({ message: "Common subjects must be for Semester 1 or 2" });
+            }
+            department = null;
+        } else {
+            // Requirement: DEPARTMENT -> Second Year onwards (Sem 3+), Department selection is mandatory
+            if (parsedSemester < 3) {
+                return res.status(400).json({ message: "Department specific subjects must be for Semester 3 or above" });
+            }
+            if (!department) {
+                return res.status(400).json({ message: "Department is mandatory for department-specific subjects" });
+            }
+        }
+
         const subject = await prisma.subject.create({
             data: {
                 code,
                 name,
                 shortName,
                 department,
-                semester: parseInt(semester)
+                semester: parsedSemester,
+                type: subjectType
             }
         });
         res.status(201).json(subject);
     } catch (error) {
+        console.error('[ERROR] createSubject failed:', error);
         res.status(400).json({ message: error.message });
     }
 }
@@ -864,7 +940,9 @@ const getSubjectMarksForAdmin = async (req, res) => {
 
         const students = await prisma.student.findMany({
             where: {
-                department: subject.department,
+                // If it's a COMMON subject, department is null, so we filter by semester
+                // If it's a DEPARTMENT subject, we filter by both department and semester
+                department: subject.type === 'COMMON' ? null : subject.department,
                 semester: subject.semester
             },
             include: {
@@ -1003,8 +1081,9 @@ const getDashboardStats = async (req, res) => {
         const studentCount = await prisma.student.count();
         const facultyCount = await prisma.user.count({ where: { role: 'FACULTY' } });
         const subjectCount = await prisma.subject.count();
+        const deptCount = await prisma.department.count();
 
-        // Department-wise data
+        // Department-wise data (treating NULL as "Unassigned/First Year")
         const departments = await prisma.student.groupBy({
             by: ['department'],
             _count: { id: true }
@@ -1012,10 +1091,13 @@ const getDashboardStats = async (req, res) => {
 
         const departmentData = await Promise.all(departments.map(async (dept) => {
             const facultyInDept = await prisma.user.count({
-                where: { role: 'FACULTY', department: dept.department }
+                where: {
+                    role: 'FACULTY',
+                    department: dept.department === null ? { in: [null, '', 'First Year (General)'] } : dept.department
+                }
             });
             return {
-                dept: dept.department,
+                dept: dept.department || 'First Year (General)',
                 students: dept._count.id,
                 faculty: facultyInDept
             };
@@ -1147,42 +1229,37 @@ const saveTimetable = async (req, res) => {
     const { entries, department, year, semester, section } = req.body;
 
     try {
-        const transaction = entries.map(entry =>
-            prisma.timetable.upsert({
+        await prisma.$transaction(async (tx) => {
+            // 1. Delete all existing entries for this specific scope
+            await tx.timetable.deleteMany({
                 where: {
-                    department_year_semester_section_day_period: {
+                    department,
+                    year: parseInt(year),
+                    semester: parseInt(semester),
+                    section
+                }
+            });
+
+            // 2. Create the new entries
+            for (const entry of entries) {
+                await tx.timetable.create({
+                    data: {
                         department,
                         year: parseInt(year),
                         semester: parseInt(semester),
                         section,
                         day: entry.day,
-                        period: parseInt(entry.period)
+                        period: parseInt(entry.period),
+                        subjectName: entry.subjectName,
+                        facultyName: entry.facultyName,
+                        facultyId: entry.facultyId ? parseInt(entry.facultyId) : null,
+                        room: entry.room,
+                        type: entry.type,
+                        duration: parseInt(entry.duration) || 1
                     }
-                },
-                update: {
-                    subjectName: entry.subjectName,
-                    facultyName: entry.facultyName,
-                    facultyId: entry.facultyId ? parseInt(entry.facultyId) : null,
-                    room: entry.room,
-                    type: entry.type
-                },
-                create: {
-                    department,
-                    year: parseInt(year),
-                    semester: parseInt(semester),
-                    section,
-                    day: entry.day,
-                    period: parseInt(entry.period),
-                    subjectName: entry.subjectName,
-                    facultyName: entry.facultyName,
-                    facultyId: entry.facultyId ? parseInt(entry.facultyId) : null,
-                    room: entry.room,
-                    type: entry.type
-                }
-            })
-        );
-
-        await prisma.$transaction(transaction);
+                });
+            }
+        });
         res.json({ message: 'Timetable saved successfully' });
     } catch (error) {
         console.error(error);
@@ -1417,11 +1494,40 @@ const exportAttendanceExcel = async (req, res) => {
     }
 };
 
+const promoteStudents = async (req, res) => {
+    const { studentIds, department, section, semester, year } = req.body;
+    try {
+        if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+            return res.status(400).json({ message: "No students selected for promotion" });
+        }
+
+        const result = await prisma.student.updateMany({
+            where: {
+                id: { in: studentIds.map(id => parseInt(id)) }
+            },
+            data: {
+                department: department,
+                section: section,
+                semester: parseInt(semester),
+                year: parseInt(year)
+            }
+        });
+
+        res.json({
+            message: `Successfully promoted ${result.count} students`,
+            count: result.count
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getAllFaculty,
     createFaculty,
     deleteFaculty,
     createStudent,
+    updateStudent,
     getStudents,
     createSubject,
     getSubjects,
@@ -1451,5 +1557,6 @@ module.exports = {
     unapproveMarks, unlockMarks, getAllSubjectMarksStatus,
 
     // Attendance Export
-    exportAttendanceExcel
+    exportAttendanceExcel,
+    promoteStudents
 };

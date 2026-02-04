@@ -4,7 +4,8 @@ import { Download, Search, FileText, AlertTriangle, FileSpreadsheet } from 'luci
 // XLSX import removed - using backend export for Excel reports
 
 const AttendanceReports = () => {
-    const [department, setDepartment] = useState('CSE');
+    const [departments, setDepartments] = useState([]);
+    const [department, setDepartment] = useState('');
     const [year, setYear] = useState('1');
     const [section, setSection] = useState('A');
     const [fromDate, setFromDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]); // Start of month
@@ -13,6 +14,22 @@ const AttendanceReports = () => {
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [exporting, setExporting] = useState(false);
+
+    useEffect(() => {
+        fetchDepartments();
+    }, []);
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await api.get('/admin/departments');
+            setDepartments(res.data);
+            if (res.data.length > 0) {
+                setDepartment(res.data[0].code || res.data[0].name);
+            }
+        } catch (err) {
+            console.error("Failed to fetch departments");
+        }
+    };
 
     const fetchReport = async () => {
         setLoading(true);
@@ -89,7 +106,7 @@ const AttendanceReports = () => {
                     <div>
                         <label className="label">Department</label>
                         <select className="input-field w-full" value={department} onChange={e => setDepartment(e.target.value)}>
-                            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
+                            {departments.map(d => <option key={d.id} value={d.code || d.name}>{d.code || d.name}</option>)}
                         </select>
                     </div>
                     <div>

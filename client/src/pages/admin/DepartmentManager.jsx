@@ -19,7 +19,9 @@ const DepartmentManager = () => {
     const [formData, setFormData] = useState({
         name: '',
         code: '',
-        hodId: ''
+        hodId: '',
+        sections: 'A,B,C',
+        years: '2,3,4'
     });
 
     useEffect(() => {
@@ -54,12 +56,14 @@ const DepartmentManager = () => {
             setFormData({
                 name: dept.name,
                 code: dept.code || '',
-                hodId: dept.hodId || ''
+                hodId: dept.hodId || '',
+                sections: dept.sections || 'A,B,C',
+                years: dept.years || '2,3,4'
             });
         } else {
             setEditMode(false);
             setSelectedDept(null);
-            setFormData({ name: '', code: '', hodId: '' });
+            setFormData({ name: '', code: '', hodId: '', sections: 'A,B,C', years: '2,3,4' });
         }
         setShowModal(true);
     };
@@ -81,8 +85,19 @@ const DepartmentManager = () => {
         }
     };
 
+    const handleYearToggle = (year) => {
+        const currentYears = formData.years.split(',').filter(y => y.trim() !== '');
+        let newYears;
+        if (currentYears.includes(year.toString())) {
+            newYears = currentYears.filter(y => y !== year.toString());
+        } else {
+            newYears = [...currentYears, year.toString()].sort();
+        }
+        setFormData({ ...formData, years: newYears.join(',') });
+    };
+
     const handleDelete = async (id) => {
-        if (!confirm('Area you sure you want to delete this department?')) return;
+        if (!confirm('Are you sure you want to delete this department?')) return;
         try {
             await api.delete(`/admin/departments/${id}`);
             fetchData();
@@ -150,6 +165,22 @@ const DepartmentManager = () => {
                                                     {dept.code}
                                                 </span>
                                             )}
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <div className="p-1.5 rounded-lg bg-blue-50">
+                                                <Users size={14} className="text-blue-600" />
+                                            </div>
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                Sections: <span className="text-blue-700">{dept.sections}</span>
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <div className="p-1.5 rounded-lg bg-indigo-50">
+                                                <GraduationCap size={14} className="text-indigo-600" />
+                                            </div>
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                Years: <span className="text-indigo-700">{dept.name === 'First Year (General)' ? '1' : (dept.years || '2,3,4')}</span>
+                                            </p>
                                         </div>
                                         <div className="flex items-center gap-2 pt-1">
                                             <div className={`p-1.5 rounded-lg ${dept.hodName === 'Unassigned' ? 'bg-gray-100' : 'bg-amber-50'}`}>
@@ -276,6 +307,35 @@ const DepartmentManager = () => {
                                             value={formData.code}
                                             onChange={e => setFormData({ ...formData, code: e.target.value })}
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Supported Years</label>
+                                        <div className="flex gap-2">
+                                            {[1, 2, 3, 4].map(year => (
+                                                <button
+                                                    key={year}
+                                                    type="button"
+                                                    onClick={() => handleYearToggle(year)}
+                                                    className={`w-10 h-10 rounded-xl font-bold transition-all ${formData.years.split(',').includes(year.toString())
+                                                        ? 'bg-[#003B73] text-white shadow-md'
+                                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {year}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Sections (Comma Separated)</label>
+                                        <input
+                                            className="input-field font-bold text-gray-700"
+                                            placeholder="e.g. A,B,C,D"
+                                            value={formData.sections}
+                                            onChange={e => setFormData({ ...formData, sections: e.target.value })}
+                                            required
+                                        />
+                                        <p className="text-[9px] text-gray-400 mt-1 italic font-medium">Use commas to separate sections (e.g. A,B,C)</p>
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Assign HOD</label>

@@ -12,7 +12,7 @@ const validate = (req, res, next) => {
 const validateStudent = [
     body('registerNumber').notEmpty().isString().trim(),
     body('name').notEmpty().isString().trim().isLength({ min: 2, max: 100 }),
-    body('department').notEmpty().isString(),
+    body('department').optional({ nullable: true, checkFalsy: true }).isString(),
     body('year').isInt({ min: 1, max: 4 }),
     body('section').notEmpty().isString().isLength({ min: 1, max: 1 }),
     body('semester').isInt({ min: 1, max: 8 }),
@@ -25,7 +25,7 @@ const validateFaculty = [
     body('password').isString().isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
         .withMessage('Password must be at least 8 characters with uppercase, lowercase, and number'),
     body('fullName').notEmpty().isString().trim(),
-    body('department').notEmpty().isString(),
+    body('department').optional({ nullable: true, checkFalsy: true }).isString(),
     validate
 ];
 
@@ -33,7 +33,7 @@ const validateFaculty = [
 const validateSubject = [
     body('code').notEmpty().isString().trim(),
     body('name').notEmpty().isString().trim(),
-    body('department').notEmpty().isString(),
+    body('department').optional({ nullable: true, checkFalsy: true }).isString(),
     body('semester').isInt({ min: 1, max: 8 }),
     validate
 ];

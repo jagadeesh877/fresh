@@ -7,6 +7,7 @@ const AdminMarksApproval = () => {
     const navigate = useNavigate();
     const [selectedExam, setSelectedExam] = useState('cia1'); // 'cia1', 'cia2', 'cia3'
     const [allSubjects, setAllSubjects] = useState([]);
+    const [departments, setDepartments] = useState([]); // Fetch departments for filter
     const [filterDept, setFilterDept] = useState('');
     const [filterSemester, setFilterSemester] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL'); // 'ALL', 'PENDING', 'COMPLETED'
@@ -18,7 +19,17 @@ const AdminMarksApproval = () => {
 
     useEffect(() => {
         fetchSubjectsStatus();
+        fetchDepartments();
     }, []);
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await api.get('/admin/departments');
+            setDepartments(res.data.map(d => d.code || d.name));
+        } catch (err) {
+            console.error("Failed to fetch departments");
+        }
+    };
 
     const fetchSubjectsStatus = async () => {
         console.log('Fetching subjects status...');
@@ -275,7 +286,7 @@ const AdminMarksApproval = () => {
         );
     }
 
-    const departments = [...new Set(allSubjects.map(s => s.department))];
+    // const departments = [...new Set(allSubjects.map(s => s.department))]; // Removed in favor of API
     const semesters = [...new Set(allSubjects.map(s => s.semester))].sort((a, b) => a - b);
 
     return (

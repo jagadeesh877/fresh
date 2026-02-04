@@ -3,16 +3,17 @@ import api from '../../api/axios';
 import { Save, Loader, X, Clock, MapPin, User, BookOpen, Plus, Edit2, Trash2, Calendar, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 
 const TimetableManager = () => {
-    const [department, setDepartment] = useState('CSE');
-    const [year, setYear] = useState('3');
+    const [department, setDepartment] = useState('');
+    const [year, setYear] = useState('1');
     const [section, setSection] = useState('A');
-    const [semester, setSemester] = useState('5');
+    const [semester, setSemester] = useState('1');
 
     const [timetable, setTimetable] = useState({});
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [subjects, setSubjects] = useState([]);
     const [facultyList, setFacultyList] = useState([]);
+    const [departments, setDepartments] = useState([]);
 
     // Modal State
     const [modalOpen, setModalOpen] = useState(false);
@@ -46,7 +47,54 @@ const TimetableManager = () => {
     useEffect(() => {
         fetchSubjects();
         fetchFaculty();
+        fetchDepartments();
     }, []);
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await api.get('/admin/departments');
+            setDepartments(res.data);
+            if (res.data.length > 0 && !department) {
+                setDepartment(res.data[0].name);
+            }
+        } catch (err) {
+            console.error("Failed to fetch departments");
+        }
+    };
+
+    useEffect(() => {
+        const deptObj = departments.find(d => (d.code || d.name) === department);
+        if (deptObj) {
+            // Update Section
+            const secs = deptObj.sections?.split(',') || ['A'];
+            if (!secs.includes(section)) {
+                setSection(secs[0]);
+            }
+
+            // Update Year
+            const availableYears = deptObj.years?.split(',') || ['2', '3', '4'];
+            if (!availableYears.includes(year.toString())) {
+                setYear(availableYears[0]);
+            }
+        }
+    }, [department, departments]);
+
+    useEffect(() => {
+        let validSems;
+        const isGeneral = department === 'First Year (General)' ||
+            departments.find(d => (d.code || d.name) === department)?.name === 'First Year (General)';
+
+        if (isGeneral) {
+            validSems = ['1', '2'];
+        } else {
+            const y = parseInt(year);
+            validSems = [(y * 2 - 1).toString(), (y * 2).toString()];
+        }
+
+        if (!validSems.includes(semester.toString())) {
+            setSemester(validSems[0]);
+        }
+    }, [year, department, departments]);
 
     useEffect(() => {
         fetchTimetable();
@@ -419,9 +467,18 @@ const TimetableManager = () => {
         'IT': 'bg-[#003B73] text-white'
     };
 
-    const availableSubjects = subjects.filter(s =>
-        s.department === department && s.semester === parseInt(semester)
-    );
+    const currentDept = departments.find(d => (d.code || d.name) === department);
+
+    const availableSubjects = subjects.filter(s => {
+        // Strict department match for Department-specific subjects
+
+        if (s.semester !== parseInt(semester)) return false;
+
+        if (s.type === 'COMMON') return true;
+
+        // Match against Code OR Name (handle legacy data or mismatch)
+        return s.department === department || (currentDept && s.department === currentDept.name);
+    });
 
     return (
         <div className="min-h-screen bg-[#F5F7FA] p-6">
@@ -468,8 +525,8 @@ const TimetableManager = () => {
                             value={department}
                             onChange={e => setDepartment(e.target.value)}
                         >
-                            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d =>
-                                <option key={d} value={d}>{d}</option>
+                            {departments.map(d =>
+                                <option key={d.id} value={d.code || d.name}>{d.code || d.name}</option>
                             )}
                         </select>
                     </div>
@@ -480,7 +537,7 @@ const TimetableManager = () => {
                             value={year}
                             onChange={e => setYear(e.target.value)}
                         >
-                            {[1, 2, 3, 4].map(y =>
+                            {(departments.find(d => (d.code || d.name) === department)?.years?.split(',') || ['1', '2', '3', '4']).map(y =>
                                 <option key={y} value={y}>{y} Year</option>
                             )}
                         </select>
@@ -492,7 +549,10 @@ const TimetableManager = () => {
                             value={semester}
                             onChange={e => setSemester(e.target.value)}
                         >
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map(s =>
+                            {(department === 'First Year (General)' || currentDept?.name === 'First Year (General)'
+                                ? ['1', '2']
+                                : [(parseInt(year) * 2 - 1).toString(), (parseInt(year) * 2).toString()]
+                            ).map(s =>
                                 <option key={s} value={s}>Sem {s}</option>
                             )}
                         </select>
@@ -504,7 +564,7 @@ const TimetableManager = () => {
                             value={section}
                             onChange={e => setSection(e.target.value)}
                         >
-                            {['A', 'B', 'C'].map(s =>
+                            {(departments.find(d => (d.code || d.name) === department)?.sections?.split(',') || ['A', 'B', 'C']).map(s =>
                                 <option key={s} value={s}>{s}</option>
                             )}
                         </select>

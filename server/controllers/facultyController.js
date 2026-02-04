@@ -99,17 +99,20 @@ const getClassDetails = async (req, res) => {
         const classesCompleted = attendanceRecords.length;
 
         // 2. Estimate Total Classes for Semester
-        // Count weekly classes from Timetable
-        const weeklyClasses = await prisma.timetable.count({
+        // Fetch specific timetable entries to sum actual duration (handling 2-3 hour labs)
+        const timetableEntries = await prisma.timetable.findMany({
             where: {
                 facultyId,
                 subjectId: parseInt(subjectId)
             }
         });
 
+        // Calculate total weekly hours (sum of durations)
+        const weeklyHours = timetableEntries.reduce((sum, entry) => sum + (entry.duration || 1), 0);
+
         // Assume 15 weeks per semester as standard
         const totalWeeks = 15;
-        const totalEstimatedClasses = (weeklyClasses * totalWeeks) || 45; // Default to 45 if no timetable
+        const totalEstimatedClasses = (weeklyHours * totalWeeks) || 45; // Default to 45 only if no timetable found
 
         // 3. Calculate Percentage
         const percentage = Math.min(Math.round((classesCompleted / totalEstimatedClasses) * 100), 100);

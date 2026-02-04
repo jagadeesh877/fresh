@@ -50,6 +50,8 @@ model Department {
   name      String   @unique
   code      String?  @unique // e.g. "CSE", "ECE"
   hodId     Int?     // User ID of the HOD
+  sections  String   @default("A,B,C")
+  years     String   @default("2,3,4")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -58,7 +60,7 @@ model Student {
   id             Int      @id @default(autoincrement())
   registerNumber String   @unique
   name           String
-  department     String
+  department     String?
   year           Int      // 1, 2, 3, 4
   section        String   // A, B, C
   semester       Int
@@ -69,7 +71,7 @@ model Student {
 
 model Timetable {
   id          Int      @id @default(autoincrement())
-  department  String
+  department  String?
   year        Int
   semester    Int
   section     String
@@ -99,8 +101,9 @@ model Subject {
   code               String              @unique
   name               String
   shortName          String?
-  department         String
+  department         String?
   semester           Int
+  type               String              @default("DEPARTMENT") // "COMMON", "DEPARTMENT"
   marks              Marks[]
   attendance         StudentAttendance[]
   facultyAssignments FacultyAssignment[]

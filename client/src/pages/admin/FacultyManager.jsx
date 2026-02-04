@@ -163,7 +163,12 @@ const FacultyManager = () => {
             refreshFaculty();
             alert('Faculty Created Successfully');
         } catch (err) {
-            alert('Error creating faculty');
+            if (err.response?.data?.errors) {
+                const messages = err.response.data.errors.map(e => e.msg).join('\n');
+                alert(`Validation Errors:\n${messages}`);
+            } else {
+                alert(err.response?.data?.message || 'Error creating faculty');
+            }
         } finally {
             setLoading(false);
         }
@@ -311,7 +316,7 @@ const FacultyManager = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
                             <select className="input-field" value={newFaculty.department} onChange={e => setNewFaculty({ ...newFaculty, department: e.target.value })} required>
                                 <option value="">Select Dept</option>
-                                {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                                {departments.map(d => <option key={d.id} value={d.code || d.name}>{d.code || d.name}</option>)}
                             </select>
                         </div>
                         <div>
@@ -320,7 +325,17 @@ const FacultyManager = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input className="input-field" type="password" value={newFaculty.password} onChange={e => setNewFaculty({ ...newFaculty, password: e.target.value })} required />
+                            <input
+                                className="input-field"
+                                type="password"
+                                value={newFaculty.password}
+                                onChange={e => setNewFaculty({ ...newFaculty, password: e.target.value })}
+                                required
+                                placeholder="Min 8 chars, Upper, Lower, Number"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Must be 8+ chars with uppercase, lowercase, and number.
+                            </p>
                         </div>
                         <button type="submit" disabled={loading} className="w-full btn btn-primary flex justify-center items-center gap-2">
                             {loading ? 'Creating...' : 'Create Faculty'}

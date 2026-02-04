@@ -8,7 +8,7 @@ const CourseManager = () => {
 
     // Create Mode
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newCourse, setNewCourse] = useState({ code: '', name: '', department: '', semester: '' });
+    const [newCourse, setNewCourse] = useState({ code: '', name: '', department: '', semester: '', type: 'DEPARTMENT' });
 
     // Assignment Mode
     const [selectedSubjectId, setSelectedSubjectId] = useState(null);
@@ -51,10 +51,10 @@ const CourseManager = () => {
             await api.post('/admin/subjects', newCourse);
             alert('Course Created Successfully');
             setShowCreateModal(false);
-            setNewCourse({ code: '', name: '', department: '', semester: '' });
+            setNewCourse({ code: '', name: '', department: '', semester: '', type: 'DEPARTMENT' });
             refreshSubjects();
         } catch (err) {
-            alert('Error creating course. Code might be duplicate.');
+            alert('Error creating course: ' + (err.response?.data?.message || err.message));
         }
     }
 
@@ -111,7 +111,9 @@ const CourseManager = () => {
         const search = searchTerm.toLowerCase();
 
         const matchesSearch = name.includes(search) || code.includes(search);
-        const matchesDept = filterDept ? s.department === filterDept : true;
+        const matchesDept = filterDept === 'COMMON'
+            ? s.type === 'COMMON'
+            : (filterDept ? s.department === filterDept : true);
         return matchesSearch && matchesDept;
     });
 
@@ -145,6 +147,7 @@ const CourseManager = () => {
                             onChange={e => setFilterDept(e.target.value)}
                         >
                             <option value="">All Depts</option>
+                            <option value="COMMON">First Year (Common)</option>
                             {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
                         </select>
                     </div>
@@ -166,7 +169,17 @@ const CourseManager = () => {
                                 <tr key={sub.id} className="hover:bg-gray-50">
                                     <td className="p-3 font-mono text-xs">{sub.code}</td>
                                     <td className="p-3 font-medium text-gray-800">{sub.name}</td>
-                                    <td className="p-3 text-sm text-gray-500">{sub.department}-S{sub.semester}</td>
+                                    <td className="p-3 text-sm text-gray-500">
+                                        {sub.type === 'COMMON' ? (
+                                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                Common (Sem {sub.semester})
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                {sub.department} (Sem {sub.semester})
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="p-3">
                                         {sub.assignments?.length > 0 ? (
                                             <div className="flex flex-col gap-2">
@@ -223,17 +236,61 @@ const CourseManager = () => {
                                 <label className="block text-sm font-semibold mb-1">Course Name</label>
                                 <input className="input-field" placeholder="e.g. Data Structures" value={newCourse.name} onChange={e => setNewCourse({ ...newCourse, name: e.target.value })} required />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1">Department</label>
-                                    <select className="input-field" value={newCourse.department} onChange={e => setNewCourse({ ...newCourse, department: e.target.value })} required>
-                                        <option value="">Select Dept</option>
-                                        {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                                    </select>
+                                    <label className="block text-sm font-semibold mb-1">Subject Type</label>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="type"
+                                                value="DEPARTMENT"
+                                                checked={newCourse.type === 'DEPARTMENT'}
+                                                onChange={e => setNewCourse({ ...newCourse, type: e.target.value, department: '' })}
+                                            />
+                                            <span className="text-sm">Dept Specific</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="type"
+                                                value="COMMON"
+                                                checked={newCourse.type === 'COMMON'}
+                                                onChange={e => setNewCourse({ ...newCourse, type: e.target.value, department: '', semester: '1' })}
+                                            />
+                                            <span className="text-sm">Common (1st Year)</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-semibold mb-1">Semester</label>
-                                    <input type="number" min="1" max="8" className="input-field" value={newCourse.semester} onChange={e => setNewCourse({ ...newCourse, semester: e.target.value })} required />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Semester</label>
+                                        <select
+                                            className="input-field"
+                                            value={newCourse.semester}
+                                            onChange={e => setNewCourse({ ...newCourse, semester: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">Select</option>
+                                            {newCourse.type === 'COMMON'
+                                                ? [1, 2].map(s => <option key={s} value={s}>Sem {s}</option>)
+                                                : [3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Sem {s}</option>)
+                                            }
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1">Department</label>
+                                        <select
+                                            className={`input-field ${newCourse.type === 'COMMON' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                            value={newCourse.type === 'COMMON' ? '' : newCourse.department}
+                                            onChange={e => setNewCourse({ ...newCourse, department: e.target.value })}
+                                            required={newCourse.type === 'DEPARTMENT'}
+                                            disabled={newCourse.type === 'COMMON'}
+                                        >
+                                            <option value="">{newCourse.type === 'COMMON' ? 'N/A' : 'Select Dept'}</option>
+                                            {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
@@ -263,7 +320,12 @@ const CourseManager = () => {
                             <div className="mb-6">
                                 <label className="block text-sm font-semibold mb-2">Section</label>
                                 <select className="input-field" value={assignSection} onChange={e => setAssignSection(e.target.value)} required>
-                                    {['A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s}</option>)}
+                                    {(() => {
+                                        const sub = subjectList.find(s => s.id === selectedSubjectId);
+                                        const targetDept = sub?.type === 'COMMON' ? 'First Year (General)' : sub?.department;
+                                        const sections = departments.find(d => d.name === targetDept)?.sections?.split(',') || ['A', 'B', 'C'];
+                                        return sections.map(s => <option key={s} value={s}>{s}</option>);
+                                    })()}
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3">

@@ -10,7 +10,9 @@ async function main() {
     const hashedPassword = await bcrypt.hash('admin123', 10);
     const admin = await prisma.user.upsert({
         where: { username: 'admin' },
-        update: {},
+        update: {
+            password: hashedPassword // Ensure password is reset to known value
+        },
         create: {
             username: 'admin',
             password: hashedPassword,
@@ -22,18 +24,26 @@ async function main() {
 
     // 2. Create Departments
     const deptData = [
-        { name: 'Computer Science', code: 'CSE' },
-        { name: 'Electronics', code: 'ECE' },
-        { name: 'Mechanical', code: 'MECH' },
-        { name: 'Civil Engineering', code: 'CIVIL' }
+        { name: 'First Year (General)', code: 'GEN', years: '1' },
+        { name: 'Computer Science', code: 'CSE', years: '2,3,4' },
+        { name: 'Electronics', code: 'ECE', years: '2,3,4' },
+        { name: 'Mechanical', code: 'MECH', years: '2,3,4' },
+        { name: 'Civil Engineering', code: 'CIVIL', years: '2,3,4' }
     ];
 
     const departments = [];
     for (const d of deptData) {
         const dept = await prisma.department.upsert({
             where: { name: d.name },
-            update: { code: d.code },
-            create: { name: d.name, code: d.code }
+            update: {
+                code: d.code,
+                years: d.years || '2,3,4'
+            },
+            create: {
+                name: d.name,
+                code: d.code,
+                years: d.years || '2,3,4'
+            }
         });
         departments.push(dept);
     }
@@ -41,10 +51,17 @@ async function main() {
 
     // 3. Create Faculty & Assign HOD
     for (const dept of departments) {
+        const username = `hod_${dept.code.toLowerCase()}`;
         const facultyName = `Prof. ${dept.code} Head`;
-        const facultyUser = await prisma.user.create({
-            data: {
-                username: `hod_${dept.code.toLowerCase()}`,
+
+        const facultyUser = await prisma.user.upsert({
+            where: { username: username },
+            update: {
+                fullName: facultyName,
+                department: dept.name
+            },
+            create: {
+                username: username,
                 password: hashedPassword,
                 role: 'FACULTY',
                 fullName: facultyName,

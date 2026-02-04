@@ -1,14 +1,14 @@
 const express = require('express');
 const {
     getAllFaculty, createFaculty, deleteFaculty,
-    createStudent, getStudents,
+    createStudent, updateStudent, getStudents,
     createSubject, getSubjects, deleteSubject, assignFaculty, removeFacultyAssignment, getDashboardStats,
     getSubjectMarksForAdmin, updateMarksForAdmin, getTimetable, saveTimetable,
     deleteStudent, getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getAbsences, markFacultyAbsent, removeFacultyAbsence, getSubstitutions, assignSubstitute, deleteSubstitution,
     getPendingMarks, getMarksForApproval, approveMarks, approveAllMarks,
     unapproveMarks, unlockMarks, getAllSubjectMarksStatus,
-    exportAttendanceExcel
+    exportAttendanceExcel, promoteStudents
 } = require('../controllers/adminController');
 const { getAttendanceReport } = require('../controllers/attendanceController');
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
@@ -35,6 +35,7 @@ router.delete('/departments/:id', deleteDepartment);
 
 router.get('/students', getStudents);
 router.post('/students', validateStudent, createStudent);
+router.put('/students/:id', validateStudent, updateStudent);
 router.delete('/students/:id', deleteStudent);
 
 router.get('/subjects', getSubjects);
@@ -70,5 +71,7 @@ router.post('/marks-approval/unapprove', unapproveMarks);
 // Attendance Reports
 router.get('/attendance/report', getAttendanceReport);
 router.get('/attendance/export-excel', exportAttendanceExcel);
+
+router.post('/students/promote', promoteStudents);
 
 module.exports = router;

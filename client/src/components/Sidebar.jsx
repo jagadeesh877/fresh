@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, BookOpen, Calendar, ClipboardList,
+    LayoutDashboard, Users, BookOpen, Calendar, ClipboardList, TrendingUp,
     Book, Bell, FileText, GraduationCap, Building2, Award, CheckCircle, UserCheck, Settings as SettingsIcon
 } from 'lucide-react';
 
@@ -11,6 +11,7 @@ const Sidebar = ({ role, activePath }) => {
     const adminMenu = [
         { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
         { label: 'Students', path: '/admin/students', icon: Users },
+        { label: 'Student Promotion', path: '/admin/students/promote', icon: TrendingUp },
         { label: 'Subjects', path: '/admin/subjects', icon: BookOpen },
         { label: 'Faculty', path: '/admin/faculty', icon: GraduationCap },
         { label: 'Timetable', path: '/admin/timetable', icon: Calendar },

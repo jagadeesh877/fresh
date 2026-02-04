@@ -7,10 +7,17 @@ const SubjectManager = () => {
     const navigate = useNavigate();
     const [subjectList, setSubjectList] = useState([]);
     const [facultyList, setFacultyList] = useState([]);
-    const [newSubject, setNewSubject] = useState({ code: '', name: '', department: '', semester: '' });
+    const [newSubject, setNewSubject] = useState({ code: '', name: '', department: '', semester: '', type: 'DEPARTMENT' });
+    const [departments, setDepartments] = useState([]);
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDept, setFilterDept] = useState('');
+
+    useEffect(() => {
+        if (filterDept && newSubject.type === 'DEPARTMENT') {
+            setNewSubject(prev => ({ ...prev, department: filterDept }));
+        }
+    }, [filterDept]);
 
     // Assignment Mode
     const [selectedSubjectId, setSelectedSubjectId] = useState(null);
@@ -20,7 +27,17 @@ const SubjectManager = () => {
     useEffect(() => {
         refreshSubjects();
         refreshFaculty();
+        fetchDepartments();
     }, []);
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await api.get('/admin/departments');
+            setDepartments(res.data);
+        } catch (err) {
+            console.error("Failed to fetch departments");
+        }
+    };
 
     const refreshSubjects = async () => {
         try {
@@ -44,11 +61,11 @@ const SubjectManager = () => {
         e.preventDefault();
         try {
             await api.post('/admin/subjects', newSubject);
-            setNewSubject({ code: '', name: '', department: '', semester: '' });
+            setNewSubject({ code: '', name: '', department: '', semester: '', type: 'DEPARTMENT' });
             refreshSubjects();
             alert('Subject Created');
         } catch (err) {
-            alert('Error creating subject');
+            alert('Error creating subject: ' + (err.response?.data?.message || err.message));
         }
     }
 
@@ -98,7 +115,9 @@ const SubjectManager = () => {
         const search = searchTerm.toLowerCase();
 
         const matchesSearch = name.includes(search) || code.includes(search);
-        const matchesDept = filterDept ? s.department === filterDept : true;
+        const matchesDept = filterDept === 'COMMON'
+            ? s.type === 'COMMON'
+            : (filterDept ? s.department === filterDept : true);
         return matchesSearch && matchesDept;
     });
 
@@ -123,16 +142,58 @@ const SubjectManager = () => {
                             <input className="input-field" value={newSubject.name} onChange={e => setNewSubject({ ...newSubject, name: e.target.value })} required />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <select className="input-field" value={newSubject.department} onChange={e => setNewSubject({ ...newSubject, department: e.target.value })} required>
-                                    <option value="">Select</option>
-                                    {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Subject Type</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="type"
+                                            value="DEPARTMENT"
+                                            checked={newSubject.type === 'DEPARTMENT'}
+                                            onChange={e => setNewSubject({ ...newSubject, type: e.target.value, department: '' })}
+                                        />
+                                        <span className="text-sm">Department Specific</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="type"
+                                            value="COMMON"
+                                            checked={newSubject.type === 'COMMON'}
+                                            onChange={e => setNewSubject({ ...newSubject, type: e.target.value, department: '', semester: '1' })}
+                                        />
+                                        <span className="text-sm">Common (1st Year)</span>
+                                    </label>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-                                <input type="number" className="input-field" value={newSubject.semester} onChange={e => setNewSubject({ ...newSubject, semester: e.target.value })} required min="1" max="8" />
+                                <select
+                                    className="input-field"
+                                    value={newSubject.semester}
+                                    onChange={e => setNewSubject({ ...newSubject, semester: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Select</option>
+                                    {newSubject.type === 'COMMON'
+                                        ? [1, 2].map(s => <option key={s} value={s}>Sem {s}</option>)
+                                        : [3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Sem {s}</option>)
+                                    }
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                <select
+                                    className={`input-field ${newSubject.type === 'COMMON' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    value={newSubject.type === 'COMMON' ? '' : newSubject.department}
+                                    onChange={e => setNewSubject({ ...newSubject, department: e.target.value })}
+                                    required={newSubject.type === 'DEPARTMENT'}
+                                    disabled={newSubject.type === 'COMMON'}
+                                >
+                                    <option value="">{newSubject.type === 'COMMON' ? 'All (Common)' : 'Select'}</option>
+                                    {departments.map(d => <option key={d.id} value={d.code || d.name}>{d.code || d.name}</option>)}
+                                </select>
                             </div>
                         </div>
                         <button type="submit" className="w-full btn btn-primary mt-2">Add Subject</button>
@@ -159,7 +220,8 @@ const SubjectManager = () => {
                                 onChange={e => setFilterDept(e.target.value)}
                             >
                                 <option value="">All Depts</option>
-                                {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
+                                <option value="COMMON">First Year (Common)</option>
+                                {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
                             </select>
                         </div>
                     </div>
@@ -179,7 +241,17 @@ const SubjectManager = () => {
                                     <tr key={sub.id} className="hover:bg-gray-50">
                                         <td className="p-3 font-mono text-xs">{sub.code}</td>
                                         <td className="p-3 font-medium text-gray-800">{sub.name}</td>
-                                        <td className="p-3 text-sm text-gray-500">{sub.department}-S{sub.semester}</td>
+                                        <td className="p-3 text-sm text-gray-500">
+                                            {sub.type === 'COMMON' ? (
+                                                <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                    Common (Sem {sub.semester})
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                    {sub.department} (Sem {sub.semester})
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="p-3">
                                             {sub.assignments?.length > 0 ? (
                                                 <div className="flex flex-col gap-1">

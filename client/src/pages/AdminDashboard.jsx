@@ -6,6 +6,7 @@ import FacultyManager from './admin/FacultyManager';
 import SubjectManager from './admin/SubjectManager';
 import CourseManager from './admin/CourseManager';
 import StudentManager from './admin/StudentManager';
+import StudentPromotion from './admin/StudentPromotion';
 import AdminMarksManager from './admin/AdminMarksManager';
 import AdminMarksApproval from './admin/AdminMarksApproval';
 import TimetableManager from './admin/TimetableManager';
@@ -31,6 +32,7 @@ const AdminDashboard = () => {
                         <Route path="departments" element={<DepartmentManager />} />
                         <Route path="courses" element={<CourseManager />} />
                         <Route path="students" element={<StudentManager />} />
+                        <Route path="students/promote" element={<StudentPromotion />} />
                         <Route path="timetable" element={<TimetableManager />} />
                         <Route path="marks/:subjectId" element={<AdminMarksManager />} />
                         <Route path="marks-approval" element={<AdminMarksApproval />} />
