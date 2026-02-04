@@ -1,0 +1,56 @@
+﻿--- Checking Faculty Assignments and Student Lists ---
+Found 9 assignments.
+
+Checking Assignment: Faculty=Dr.K.P.Vasantha Kumar, Subject=Theory of Machines (24ME4101), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Dr.M.Dandhayuthabani, Subject=Thermal Engineering (24ME4102), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Mr.R.Narayanan, Subject=Machine Tools and Technology (24ME4103), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Mr.D.Manikandan, Subject=Applied Fluid Power Engineering (24ME4104), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Mr.S.Rajaram, Subject=Computer Aided Design (24ME4105), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Mrs.N.Kalaiselvi, Subject=Environmental Science and Engineering (24CY4101), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Dr.K.P.Vasantha Kumar, Subject=Kinematics and Dynamics Laboratory (24ME4201), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Mr.R.Narayanan, Subject=Manufacturing Processes Laboratory (24ME4202), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
+
+Checking Assignment: Faculty=Dr.M.Vishnu Kumar, Subject=Technical Seminar (24GE4201), Section=A
+Criteria: Dept=MECH, Sem=4, Sec=A
+Students Found: 0
+!!! WARNING: No students found for this assignment. Checking partial matches...
+  - Students in Dept MECH / Sem 4 (any section): 0
