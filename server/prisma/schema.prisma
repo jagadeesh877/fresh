@@ -15,7 +15,7 @@ model User {
   username            String   @unique
   password            String
   role                String   // "ADMIN" or "FACULTY"
-  fullName            String?me me 
+  fullName            String?
   email               String?  @unique
   phoneNumber         String?
   department          String?  // Nullable for admin
