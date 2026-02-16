@@ -584,7 +584,9 @@ const deleteStudent = async (req, res) => {
 
 const getStudents = async (req, res) => {
     try {
-        const students = await prisma.student.findMany();
+        const students = await prisma.student.findMany({
+            orderBy: { registerNumber: 'asc' }
+        });
         res.json(students);
     } catch (error) {
         res.status(500).json({ message: error.message });

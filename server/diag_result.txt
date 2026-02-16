@@ -1,0 +1,56 @@
+Testing API at http://172.27.53.175:3000/api
+Attempting to fetch data directly from controller logic (bypassing auth for diagnostic purposes)...
+DB Staff check: Found 3 staff members.
+[
+  {
+    "id": 22,
+    "username": "Ganesh",
+    "password": "$2b$10$HzjywO/AMD0sH4ht8TQQLeqOv4f5ZhinX44K/Jt6qxvZpmsYQ.QpW",
+    "role": "EXTERNAL_STAFF",
+    "fullName": "Ganesh",
+    "email": null,
+    "phoneNumber": null,
+    "department": null,
+    "designation": null,
+    "lastPasswordChange": "2026-02-12T05:21:00.320Z",
+    "isDisabled": false,
+    "forcePasswordChange": false,
+    "lastLogin": "2026-02-12T08:41:44.469Z",
+    "createdAt": "2026-02-12T05:21:00.320Z"
+  },
+  {
+    "id": 23,
+    "username": "ganesh",
+    "password": "$2b$10$0z8ghyFDQRPealA52boCw.yAh5iChuWVJXvvDZ09HFJcZPRmDsI9K",
+    "role": "EXTERNAL_STAFF",
+    "fullName": "ganesh",
+    "email": null,
+    "phoneNumber": null,
+    "department": null,
+    "designation": null,
+    "lastPasswordChange": "2026-02-16T06:26:00.076Z",
+    "isDisabled": false,
+    "forcePasswordChange": false,
+    "lastLogin": "2026-02-16T06:28:07.948Z",
+    "createdAt": "2026-02-16T06:26:00.076Z"
+  },
+  {
+    "id": 24,
+    "username": "moorthi",
+    "password": "$2b$10$UgT.p658iQlmO7tUqZVaw.TojFFtgLWitA2QjQxJ2CBCBxlEVRoam",
+    "role": "EXTERNAL_STAFF",
+    "fullName": "moorthi",
+    "email": null,
+    "phoneNumber": null,
+    "department": null,
+    "designation": null,
+    "lastPasswordChange": "2026-02-16T06:40:27.965Z",
+    "isDisabled": false,
+    "forcePasswordChange": false,
+    "lastLogin": null,
+    "createdAt": "2026-02-16T06:40:27.965Z"
+  }
+]
+DB Assignments check: Found 0 assignments.
+[]
+DB Subjects check: Found 19 subjects.

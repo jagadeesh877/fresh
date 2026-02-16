@@ -33,7 +33,7 @@ const ExternalStaffManager = () => {
             setLoading(true);
             const [assignmentsRes, subjectsRes, staffRes] = await Promise.all([
                 api.get('external/admin/assignments'),
-                api.get('admin/subjects'),
+                api.get('external/admin/available-subjects'),
                 api.get('external/admin/staff')
             ]);
 

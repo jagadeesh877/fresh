@@ -1,0 +1,4 @@
+User model: object
+ExternalMarkAssignment model: object
+ExternalMark model: object
+SUCCESS: externalMarkAssignment is available!

@@ -45,7 +45,7 @@ app.use('/api/external', externalRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/dummy', require('./routes/dummyRoutes'));
-app.use('/api/external-marks', require('./routes/externalMarkRoutes'));
+app.use('/api/external/marks', require('./routes/externalMarkRoutes'));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://172.27.53.175:${PORT}`);

@@ -124,6 +124,18 @@ exports.submitMarks = async (req, res) => {
             }
         }
 
+        // 3. Update assignment status to COMPLETED
+        await prisma.externalMarkAssignment.updateMany({
+            where: {
+                staffId: staffId,
+                subjectId: subjectInt,
+                status: 'PENDING'
+            },
+            data: {
+                status: 'COMPLETED'
+            }
+        });
+
         res.json({ message: "Marks submitted successfully", count: submissions.length });
     } catch (error) {
         console.error("Submit Marks Error:", error);

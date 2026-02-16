@@ -10,6 +10,11 @@ const {
     unapproveMarks, unlockMarks, getAllSubjectMarksStatus,
     exportAttendanceExcel, promoteStudents
 } = require('../controllers/adminController');
+const {
+    getSessions, createSession, getHalls, addHall, deleteHall,
+    generateAllocations, getSessionAllocations, toggleSessionLock,
+    exportConsolidatedPlan, updateSessionSubjects, deleteSession
+} = require('../controllers/hallAllocationController');
 const { getAttendanceReport } = require('../controllers/attendanceController');
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
 const { validateStudent, validateFaculty, validateSubject, validateMarks } = require('../middleware/validation');
@@ -73,5 +78,18 @@ router.get('/attendance/report', getAttendanceReport);
 router.get('/attendance/export-excel', exportAttendanceExcel);
 
 router.post('/students/promote', promoteStudents);
+
+// Hall Allocation Routes
+router.get('/hall-allocation/sessions', getSessions);
+router.post('/hall-allocation/sessions', createSession);
+router.delete('/hall-allocation/sessions/:id', deleteSession);
+router.put('/hall-allocation/sessions/:id/subjects', updateSessionSubjects);
+router.patch('/hall-allocation/sessions/:id/lock', toggleSessionLock);
+router.get('/hall-allocation/sessions/:id/allocations', getSessionAllocations);
+router.get('/hall-allocation/halls', getHalls);
+router.post('/hall-allocation/halls', addHall);
+router.delete('/hall-allocation/halls/:id', deleteHall);
+router.post('/hall-allocation/generate', generateAllocations);
+router.get('/hall-allocation/sessions/:id/export', exportConsolidatedPlan);
 
 module.exports = router;

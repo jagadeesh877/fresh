@@ -6,6 +6,7 @@ const { verifyToken, isAdmin, isExternalStaff } = require('../middleware/authMid
 router.get('/assignments', verifyToken, isExternalStaff, externalStaffController.getAssignedAssignments);
 router.get('/admin/assignments', verifyToken, isAdmin, externalStaffController.getAllAssignmentsForAdmin);
 router.post('/admin/assign-mark-entry', verifyToken, isAdmin, externalStaffController.assignMarkEntry);
+router.get('/admin/available-subjects', verifyToken, isAdmin, externalStaffController.getAvailableSubjectsForAssignment);
 router.get('/admin/staff', verifyToken, isAdmin, externalStaffController.getAllExternalStaff);
 router.post('/admin/staff', verifyToken, isAdmin, externalStaffController.createExternalStaff);
 router.delete('/admin/staff/:id', verifyToken, isAdmin, externalStaffController.deleteExternalStaff);

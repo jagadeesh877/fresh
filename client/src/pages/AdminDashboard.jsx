@@ -16,6 +16,7 @@ import ExamControlCenter from './admin/ExamControlCenter';
 import EndSemMarksEntry from './admin/EndSemMarksEntry';
 import ExternalStaffManager from './admin/ExternalStaffManager';
 import DummyNumberManager from './admin/DummyNumberManager';
+import HallAllocation from './admin/HallAllocation';
 import Announcements from './Announcements';
 import Settings from './Settings';
 
@@ -45,6 +46,7 @@ const AdminDashboard = () => {
                         <Route path="dummy-mapping" element={<DummyNumberManager />} />
                         <Route path="end-sem-marks" element={<EndSemMarksEntry />} />
                         <Route path="external" element={<ExternalStaffManager />} />
+                        <Route path="hall-allocation" element={<HallAllocation />} />
                         <Route path="announcements" element={<Announcements role="ADMIN" />} />
                         <Route path="attendance" element={<AttendanceReports />} />
                         <Route path="settings" element={<Settings />} />

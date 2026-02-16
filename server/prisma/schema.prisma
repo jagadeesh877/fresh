@@ -32,6 +32,7 @@ model User {
   substitutions       Substitution[]
   timetables          Timetable[]
   externalMarksSubmitted ExternalMark[] @relation("ExternalEvaluator")
+  examSessions        ExamSession[]   @relation("CreatedSessions")
 }
 
 model ActivityLog {
@@ -69,6 +70,7 @@ model Student {
   results        SemesterResult[]
   attendance     StudentAttendance[]
   dummyMappings  SubjectDummyMapping[]
+  hallAllocations HallAllocation[]
 }
 
 model Timetable {
@@ -112,6 +114,8 @@ model Subject {
   timetables         Timetable[]
   dummyMappings      SubjectDummyMapping[]
   externalMarks     ExternalMark[]
+  examSessionLinks  ExamSessionSubjects[]
+  hallAllocations   HallAllocation[]
 }
 
 model Announcement {
@@ -285,7 +289,7 @@ model ExternalMarkAssignment {
   staffId          Int
   subjectId        Int
   deadline         DateTime
-  status           String   @default("ASSIGNED")
+  status           String   @default("PENDING")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   subject          Subject  @relation(fields: [subjectId], references: [id])
@@ -371,4 +375,66 @@ model ExternalMark {
 
   @@index([dummyNumber])
   @@index([subjectId])
+}
+
+model ExamSession {
+  id          Int      @id @default(autoincrement())
+  examName    String
+  examDate    DateTime
+  session     String   // "FN" or "AN"
+  isLocked    Boolean  @default(false)
+  createdBy   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("CreatedSessions", fields: [createdBy], references: [id])
+  subjects    ExamSessionSubjects[]
+  allocations HallAllocation[]
+}
+
+model ExamSessionSubjects {
+  id            Int      @id @default(autoincrement())
+  examSessionId Int
+  subjectId     Int
+
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examSessionId, subjectId])
+}
+
+model Hall {
+  id             Int      @id @default(autoincrement())
+  hallName       String
+  blockName      String
+  totalRows      Int
+  benchesPerRow  Int
+  capacity       Int
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  allocations    HallAllocation[]
+}
+
+model HallAllocation {
+  id               Int      @id @default(autoincrement())
+  examSessionId    Int
+  hallId           Int
+  studentId        Int
+  subjectId        Int
+  department       String
+  year             Int
+  seatNumber       String
+  rowNumber        Int
+  columnNumber     Int
+  createdAt        DateTime @default(now())
+
+  examSession      ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  hall             Hall        @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  student          Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject          Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examSessionId, studentId])
+  @@unique([examSessionId, hallId, seatNumber])
 }
