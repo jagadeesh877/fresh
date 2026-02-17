@@ -133,7 +133,10 @@ const AdminMarksApproval = () => {
     };
 
     const calculateCIA = (test, assignment, attendance) => {
-        return (test || 0) + (assignment || 0) + (attendance || 0);
+        const t = (test === -1 || test === null) ? 0 : test;
+        const as = (assignment === -1 || assignment === null) ? 0 : assignment;
+        const at = (attendance === -1 || attendance === null) ? 0 : attendance;
+        return t + as + at;
     };
 
     // Filter Logic
@@ -244,7 +247,7 @@ const AdminMarksApproval = () => {
                                             className="w-5 h-5 rounded-lg border-gray-300 text-[#003B73] focus:ring-[#003B73]"
                                         />
                                     </th>
-                                    <th className="p-8 text-xs font-black text-gray-400 uppercase tracking-widest">Register No</th>
+                                    <th className="p-8 text-xs font-black text-gray-400 uppercase tracking-widest">Roll No</th>
                                     <th className="p-8 text-xs font-black text-gray-400 uppercase tracking-widest">Student Name</th>
                                     <th className="p-8 text-xs font-black text-gray-400 uppercase tracking-widest">Department</th>
                                     {selectedExam === 'internal' ? (
@@ -279,7 +282,7 @@ const AdminMarksApproval = () => {
                                                     className="w-5 h-5 rounded-lg border-gray-300 text-[#003B73] focus:ring-[#003B73]"
                                                 />
                                             </td>
-                                            <td className="p-8 font-mono text-sm uppercase text-gray-500 group-hover:text-[#003B73] transition-colors">{mark.student.registerNumber}</td>
+                                            <td className="p-8 font-mono text-sm uppercase text-[#003B73] font-bold">{mark.student.rollNo}</td>
                                             <td className="p-8">
                                                 <p className="font-bold text-[#003B73] text-lg">{mark.student.name}</p>
                                             </td>
@@ -295,9 +298,9 @@ const AdminMarksApproval = () => {
                                                 </>
                                             ) : (
                                                 <td className="p-8 text-center font-black text-[#003B73] text-lg">
-                                                    {selectedExam === 'cia1' ? cia1Total.toFixed(1) :
-                                                        selectedExam === 'cia2' ? cia2Total.toFixed(1) :
-                                                            cia3Total.toFixed(1)}
+                                                    {selectedExam === 'cia1' ? ((mark.cia1_test === -1 && mark.cia1_assignment === -1 && mark.cia1_attendance === -1) ? 'ABSENT' : cia1Total.toFixed(1)) :
+                                                        selectedExam === 'cia2' ? ((mark.cia2_test === -1 && mark.cia2_assignment === -1 && mark.cia2_attendance === -1) ? 'ABSENT' : cia2Total.toFixed(1)) :
+                                                            ((mark.cia3_test === -1 && mark.cia3_assignment === -1 && mark.cia3_attendance === -1) ? 'ABSENT' : cia3Total.toFixed(1))}
                                                 </td>
                                             )}
                                             <td className="p-8 text-center">

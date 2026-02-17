@@ -110,7 +110,8 @@ const StudentPromotion = () => {
 
     const filteredStudents = students.filter(s =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase())
+        s.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.registerNumber && s.registerNumber.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -259,7 +260,7 @@ const StudentPromotion = () => {
                                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/search:text-[#003B73] transition-colors" size={20} />
                                 <input
                                     type="text"
-                                    placeholder="IDENTIFY BY NAME OR REGISTER ID..."
+                                    placeholder="IDENTIFY BY NAME, ROLL NO OR REGISTER ID..."
                                     className="w-full pl-16 pr-6 py-5 bg-gray-50 border-2 border-transparent focus:border-[#003B73] rounded-[24px] font-black text-gray-800 outline-none transition-all placeholder:text-gray-300 placeholder:font-black placeholder:text-[10px] placeholder:tracking-widest"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
@@ -296,17 +297,26 @@ const StudentPromotion = () => {
                                         filteredStudents.map(student => (
                                             <tr
                                                 key={student.id}
-                                                className={`group/row transition-all duration-300 cursor-pointer ${selectedStudents.includes(student.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
-                                                onClick={() => handleSelectStudent(student.id)}
+                                                className={`group/row transition-all duration-300 cursor-pointer ${!student.registerNumber ? 'bg-red-50/30 grayscale-[0.5]' : selectedStudents.includes(student.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+                                                onClick={() => {
+                                                    if (!student.registerNumber) {
+                                                        return alert('This student cannot be promoted yet. Register Number is required.');
+                                                    }
+                                                    handleSelectStudent(student.id);
+                                                }}
                                             >
                                                 <td className="px-6 py-6 rounded-l-[24px] border-y border-l border-transparent group-hover/row:border-gray-100">
                                                     <div className="flex justify-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedStudents.includes(student.id)}
-                                                            onChange={() => { }}
-                                                            className="w-6 h-6 rounded-xl border-2 border-gray-200 text-[#003B73] focus:ring-[#003B73] pointer-events-none accent-[#003B73]"
-                                                        />
+                                                        {student.registerNumber ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedStudents.includes(student.id)}
+                                                                onChange={() => { }}
+                                                                className="w-6 h-6 rounded-xl border-2 border-gray-200 text-[#003B73] focus:ring-[#003B73] pointer-events-none accent-[#003B73]"
+                                                            />
+                                                        ) : (
+                                                            <AlertCircle size={20} className="text-red-400" />
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-6 text-left border-y border-transparent group-hover/row:border-gray-100">
@@ -316,7 +326,14 @@ const StudentPromotion = () => {
                                                         </div>
                                                         <div>
                                                             <p className="font-black text-gray-800 group-hover/row:text-[#003B73] transition-colors">{student.name}</p>
-                                                            <p className="text-[10px] font-mono font-black text-gray-400 mt-0.5 tracking-tighter uppercase">{student.registerNumber}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5 font-mono font-black text-[10px] tracking-tighter uppercase">
+                                                                <span className="text-[#003B73]">{student.rollNo}</span>
+                                                                {student.registerNumber ? (
+                                                                    <span className="text-gray-400">| {student.registerNumber}</span>
+                                                                ) : (
+                                                                    <span className="text-red-500 bg-red-50 px-2 rounded">MISSING REG NO</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>

@@ -191,6 +191,7 @@ const AttendanceManager = () => {
                         <table className="w-full">
                             <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                                 <tr>
+                                    <th className="p-4 text-left">Roll No</th>
                                     <th className="p-4 text-left">Reg No</th>
                                     <th className="p-4 text-left">Name</th>
                                     <th className="p-4 text-center">Status</th>
@@ -199,16 +200,17 @@ const AttendanceManager = () => {
                             <tbody>
                                 {students.map((student, idx) => (
                                     <tr key={student.id} className="border-b hover:bg-gray-50 transition-colors">
-                                        <td className="p-4 font-mono text-gray-600">{student.registerNumber}</td>
+                                        <td className="p-4 font-mono text-[#003B73] font-bold">{student.rollNo}</td>
+                                        <td className="p-4 font-mono text-gray-500 text-sm italic">{student.registerNumber || '-'}</td>
                                         <td className="p-4 font-medium text-gray-800">{student.name}</td>
                                         <td className="p-4 flex justify-center">
                                             <button
                                                 onClick={() => toggleStatus(student.id)}
                                                 className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all transform active:scale-95 ${student.status === 'PRESENT'
-                                                        ? 'bg-green-100 text-green-700 hover:bg-green-200 ring-2 ring-green-400'
-                                                        : student.status === 'ABSENT'
-                                                            ? 'bg-red-100 text-red-700 hover:bg-red-200 ring-2 ring-red-400'
-                                                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200 ring-2 ring-blue-400'
+                                                    ? 'bg-green-100 text-green-700 hover:bg-green-200 ring-2 ring-green-400'
+                                                    : student.status === 'ABSENT'
+                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200 ring-2 ring-red-400'
+                                                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200 ring-2 ring-blue-400'
                                                     }`}
                                             >
                                                 {student.status === 'PRESENT' ? (

@@ -60,7 +60,7 @@ const calculateSeating = (students, halls) => {
                     rowNumber: r,
                     columnNumber: c
                 });
-                console.log(`[Algorithm] Assigned ${studentFound.registerNumber} to ${hall.hallName} - ${String.fromCharCode(64 + c)}${r}`);
+                console.log(`[Algorithm] Assigned ${studentFound.rollNo} to ${hall.hallName} - ${String.fromCharCode(64 + c)}${r}`);
             }
         }
     }
@@ -187,7 +187,8 @@ exports.generateAllocations = async (req, res) => {
                 where: {
                     department: sub.department || undefined,
                     semester: sub.semester
-                }
+                },
+                orderBy: { rollNo: 'asc' }
             });
             // Assign which subject they are taking for this session tracking
             studentList.forEach(s => s.currentSubjectId = sub.id);
@@ -356,8 +357,8 @@ exports.updateSessionSubjects = async (req, res) => {
 const getRegisterRanges = (students) => {
     if (!students || students.length === 0) return "";
 
-    // Extract numeric parts of register numbers and sort
-    const regNos = students.map(s => s.registerNumber).sort();
+    // Extract numeric parts of roll numbers and sort
+    const regNos = students.map(s => s.rollNo).filter(Boolean).sort();
 
     const ranges = [];
     let start = regNos[0];
@@ -505,7 +506,7 @@ exports.exportConsolidatedPlan = async (req, res) => {
             doc.text('Dept.', colX.dept, y + 10, { width: colWidths.dept, align: 'center' });
             doc.text('Hall', colX.hall, y + 5, { width: colWidths.hall, align: 'center' });
             doc.text('Name', colX.hall, y + 15, { width: colWidths.hall, align: 'center' });
-            doc.text('Register Number', colX.reg, y + 10, { width: colWidths.reg, align: 'center' });
+            doc.text('Roll Number', colX.reg, y + 10, { width: colWidths.reg, align: 'center' });
             doc.text('Strength', colX.str, y + 10, { width: colWidths.str, align: 'center' });
             doc.text('Total', colX.total, y + 5, { width: colWidths.total, align: 'center' });
             doc.text('Strength', colX.total, y + 15, { width: colWidths.total, align: 'center' });
@@ -632,7 +633,8 @@ exports.exportConsolidatedPlan = async (req, res) => {
 
                     const studentAlloc = hallAllocations.find(a => a.rowNumber === r && a.columnNumber === c);
                     if (studentAlloc) {
-                        doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text(studentAlloc.student.registerNumber, colX + 22, currentGridY + 7, { width: colW - 25, align: 'center' });
+                        const displayText = studentAlloc.student.registerNumber || studentAlloc.student.rollNo;
+                        doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text(displayText, colX + 22, currentGridY + 7, { width: colW - 25, align: 'center' });
                     } else {
                         // Shading/Empty box (Moved start point to not cover label)
                         doc.save().fillColor('#f5f5f5').rect(colX + 22, currentGridY + 1, colW - 23, rowH - 2).fill().restore();

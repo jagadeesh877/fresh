@@ -4,13 +4,13 @@ import api from '../api/axios';
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
-    const [auth, setAuth] = useState(null);
+    const [auth, setAuth] = useState(() => {
+        const storedUser = localStorage.getItem('user');
+        return storedUser ? JSON.parse(storedUser) : null;
+    });
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setAuth(JSON.parse(storedUser));
-        }
+        // Auth state is now initialized synchronously from localStorage
     }, []);
 
     const login = async (username, password) => {

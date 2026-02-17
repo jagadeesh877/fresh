@@ -42,7 +42,7 @@ const getDeptCriteria = async (deptString) => {
 
 // Get subjects assigned to the logged-in faculty
 const getAssignedSubjects = async (req, res) => {
-    const facultyId = req.user.id;
+    const facultyId = parseInt(req.user.id);
     try {
         const assignments = await prisma.facultyAssignment.findMany({
             where: { facultyId },
@@ -107,7 +107,7 @@ const getAssignedSubjects = async (req, res) => {
 
 const getClassDetails = async (req, res) => {
     const { subjectId } = req.params;
-    const facultyId = req.user.id;
+    const facultyId = parseInt(req.user.id);
     try {
         const assignment = await prisma.facultyAssignment.findFirst({
             where: { subjectId: parseInt(subjectId), facultyId },
@@ -161,7 +161,7 @@ const getClassDetails = async (req, res) => {
 
 const getClassStudents = async (req, res) => {
     const { subjectId } = req.params;
-    const facultyId = req.user.id;
+    const facultyId = parseInt(req.user.id);
     try {
         const assignment = await prisma.facultyAssignment.findFirst({
             where: { subjectId: parseInt(subjectId), facultyId },
@@ -182,7 +182,7 @@ const getClassStudents = async (req, res) => {
                 marks: { where: { subjectId: parseInt(subjectId) } },
                 attendance: { where: { subjectId: parseInt(subjectId) } }
             },
-            orderBy: { registerNumber: 'asc' }
+            orderBy: { rollNo: 'asc' }
         });
 
         const data = students.map(s => {
@@ -191,12 +191,18 @@ const getClassStudents = async (req, res) => {
             const percentage = Math.round((presentCount / totalClasses) * 100);
             const mark = s.marks[0];
 
+            const isCiaAbsent = mark ? (mark.cia1_test === -1 && mark.cia1_assignment === -1 && mark.cia1_attendance === -1) &&
+                (mark.cia2_test === -1 && mark.cia2_assignment === -1 && mark.cia2_attendance === -1) &&
+                (mark.cia3_test === -1 && mark.cia3_assignment === -1 && mark.cia3_attendance === -1) : false;
+
             return {
                 id: s.id,
+                rollNo: s.rollNo,
                 registerNumber: s.registerNumber,
                 name: s.name,
                 attendancePercentage: percentage > 100 ? 100 : percentage,
                 ciaTotal: mark?.internal || 0,
+                isCiaAbsent,
                 status: percentage >= 75 ? 'Eligible' : 'Shortage'
             };
         });
@@ -243,7 +249,7 @@ const getSubjectMarks = async (req, res) => {
         const assignment = await prisma.facultyAssignment.findFirst({
             where: {
                 subjectId: parseInt(subjectId),
-                facultyId: req.user.id
+                facultyId: parseInt(req.user.id)
             }
         });
 
@@ -263,11 +269,13 @@ const getSubjectMarks = async (req, res) => {
                 marks: {
                     where: { subjectId: parseInt(subjectId) }
                 }
-            }
+            },
+            orderBy: { rollNo: 'asc' }
         });
 
         const result = students.map(s => ({
             studentId: s.id,
+            rollNo: s.rollNo,
             registerNumber: s.registerNumber,
             name: s.name,
             marks: s.marks[0] || {}
@@ -325,24 +333,56 @@ const updateMarks = async (req, res) => {
 
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
-                const val = req.body[field] === '' ? null : parseFloat(req.body[field]);
-                // 🧱 RANGE VALIDATION
-                if (val !== null && (val < 0 || val > 100)) {
-                    throw new Error(`Invalid mark value for ${field}: ${val}. Must be between 0 and 100.`);
+                const valStr = req.body[field];
+                const val = valStr === '' || valStr === null ? null : parseFloat(valStr);
+
+                // Allow -1 for absentees, but cap others at 100
+                if (val !== null && (val < -1 || val > 100)) {
+                    throw new Error(`Invalid mark value for ${field}: ${val}. Must be between -1 and 100.`);
                 }
                 fieldsToUpdate[field] = val;
             }
         });
 
         const merged = { ...currentMark, ...fieldsToUpdate };
-        const calculateCIAlo = (test, assign, att) => (test || 0) + (assign || 0) + (att || 0);
+
+        // Helper to check if a CIA is "Absent" (any component is -1)
+        const isAbsent = (test, assign, att) => (test === -1 || assign === -1 || att === -1);
+
+        const calculateCIAlo = (test, assign, att) => {
+            // Treat -1 as 0 for sum but keep track of absence
+            const t = (test === -1 || test === null) ? 0 : test;
+            const as = (assign === -1 || assign === null) ? 0 : assign;
+            const at = (att === -1 || att === null) ? 0 : att;
+            return t + as + at;
+        };
+
+        const cia1Absent = isAbsent(merged.cia1_test, merged.cia1_assignment, merged.cia1_attendance);
+        const cia2Absent = isAbsent(merged.cia2_test, merged.cia2_assignment, merged.cia2_attendance);
+        const cia3Absent = isAbsent(merged.cia3_test, merged.cia3_assignment, merged.cia3_attendance);
 
         const cia1Total = calculateCIAlo(merged.cia1_test, merged.cia1_assignment, merged.cia1_attendance);
         const cia2Total = calculateCIAlo(merged.cia2_test, merged.cia2_assignment, merged.cia2_attendance);
         const cia3Total = calculateCIAlo(merged.cia3_test, merged.cia3_assignment, merged.cia3_attendance);
 
-        const totals = [cia1Total, cia2Total, cia3Total].sort((a, b) => b - a);
-        fieldsToUpdate.internal = (totals[0] + totals[1]) / 2;
+        // Filter out absent totals for best-of-two
+        const availableTotals = [];
+        if (!cia1Absent) availableTotals.push(cia1Total);
+        if (!cia2Absent) availableTotals.push(cia2Total);
+        if (!cia3Absent) availableTotals.push(cia3Total);
+
+        availableTotals.sort((a, b) => b - a);
+
+        let internal = 0;
+        if (availableTotals.length >= 2) {
+            internal = (availableTotals[0] + availableTotals[1]) / 2;
+        } else if (availableTotals.length === 1) {
+            internal = availableTotals[0];
+        } else {
+            internal = 0; // All absent or no marks
+        }
+
+        fieldsToUpdate.internal = internal;
 
         if (touchingCia1) fieldsToUpdate.isApproved_cia1 = false;
         if (touchingCia2) fieldsToUpdate.isApproved_cia2 = false;
@@ -369,7 +409,7 @@ const updateMarks = async (req, res) => {
 
 const getFacultyDashboardStats = async (req, res) => {
     try {
-        const facultyId = req.user.id;
+        const facultyId = parseInt(req.user.id);
         const assignments = await prisma.facultyAssignment.findMany({
             where: { facultyId },
             include: { subject: true }
@@ -513,7 +553,7 @@ const getMyTimetable = async (req, res) => {
 
 const exportClassAttendanceExcel = async (req, res) => {
     const { subjectId } = req.params;
-    const facultyId = req.user.id;
+    const facultyId = parseInt(req.user.id);
     try {
         const assignment = await prisma.facultyAssignment.findFirst({
             where: { subjectId: parseInt(subjectId), facultyId },
@@ -525,12 +565,13 @@ const exportClassAttendanceExcel = async (req, res) => {
         const students = await prisma.student.findMany({
             where: { ...deptCriteria, semester: assignment.subject.semester, section: assignment.section },
             include: { attendance: { where: { subjectId: parseInt(subjectId) } } },
-            orderBy: { registerNumber: 'asc' }
+            orderBy: { rollNo: 'asc' }
         });
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Attendance Report');
         worksheet.columns = [
+            { header: 'Roll No', key: 'rollNo', width: 15 },
             { header: 'Reg No', key: 'regNo', width: 15 },
             { header: 'Student Name', key: 'name', width: 25 },
             { header: 'Attendance %', key: 'percentage', width: 15 },
@@ -542,7 +583,8 @@ const exportClassAttendanceExcel = async (req, res) => {
             const present = s.attendance.filter(a => a.status === 'PRESENT' || a.status === 'OD').length;
             const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : '0.00';
             worksheet.addRow({
-                regNo: s.registerNumber,
+                rollNo: s.rollNo,
+                regNo: s.registerNumber || '-',
                 name: s.name,
                 percentage,
                 status: parseFloat(percentage) >= 75 ? 'Eligible' : 'Shortage'

@@ -152,10 +152,10 @@ const DummyNumberManager = () => {
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-100">
-                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest">Student Name</th>
-                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest">Register No</th>
-                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest">Dummy Number</th>
-                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest">Status</th>
+                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest text-left">Roll No</th>
+                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest text-left">Reg No</th>
+                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest text-center">Dummy Number</th>
+                            <th className="p-6 text-xs font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -163,21 +163,22 @@ const DummyNumberManager = () => {
                             mappings.map(m => (
                                 <tr key={m.id} className={`border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-all ${m.isTemp ? 'opacity-70' : ''}`}>
                                     <td className="p-6">
-                                        <p className={`font-bold ${m.isTemp ? 'text-gray-400' : 'text-[#003B73]'}`}>{m.student?.name}</p>
+                                        <p className={`font-bold ${m.isTemp ? 'text-gray-400' : 'text-[#003B73]'} text-lg`}>{m.student?.name}</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{m.student?.rollNo}</p>
                                     </td>
-                                    <td className="p-6 font-mono text-sm text-gray-500">{m.originalRegisterNo}</td>
+                                    <td className="p-6 font-mono text-xs text-gray-400">{m.student?.registerNumber || '-'}</td>
                                     <td className="p-6">
-                                        <div className={`${m.isTemp ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-blue-50 text-[#003B73] border-blue-100'} px-4 py-2 rounded-xl font-black text-center border shadow-inner transition-all`}>
+                                        <div className={`${m.isTemp ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-[#003B73] text-white border-blue-900 shadow-lg'} px-5 py-2.5 rounded-2xl font-black text-center border transition-all text-xl`}>
                                             {m.dummyNumber}
                                         </div>
                                     </td>
-                                    <td className="p-6">
+                                    <td className="p-6 text-center">
                                         {m.isTemp ? (
-                                            <span className="bg-gray-100 text-gray-400 text-[10px] font-black px-3 py-1 rounded-full uppercase italic">Pending</span>
+                                            <span className="bg-gray-100 text-gray-400 text-[10px] font-black px-4 py-1.5 rounded-xl uppercase italic">Pending</span>
                                         ) : m.mappingLocked ? (
-                                            <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase">Locked</span>
+                                            <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-4 py-1.5 rounded-xl uppercase">Locked</span>
                                         ) : (
-                                            <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-full uppercase">Open</span>
+                                            <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-4 py-1.5 rounded-xl uppercase">Open</span>
                                         )}
                                     </td>
                                 </tr>

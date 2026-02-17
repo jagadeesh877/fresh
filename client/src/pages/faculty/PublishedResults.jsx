@@ -98,7 +98,7 @@ const PublishedResults = () => {
                     <table className="w-full text-left">
                         <thead className="bg-[#003B73] text-white">
                             <tr>
-                                <th className="px-6 py-4 font-semibold uppercase text-sm">Reg Number</th>
+                                <th className="px-6 py-4 font-semibold uppercase text-sm">Roll Number</th>
                                 <th className="px-6 py-4 font-semibold uppercase text-sm">Student Name</th>
                                 <th className="px-6 py-4 font-semibold uppercase text-sm text-center">CIA Marks</th>
                                 <th className="px-6 py-4 font-semibold uppercase text-sm text-center">End Sem</th>
@@ -116,7 +116,7 @@ const PublishedResults = () => {
 
                                 return (
                                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 font-mono text-sm text-gray-600 uppercase">{s.registerNumber}</td>
+                                        <td className="px-6 py-4 font-mono text-sm text-[#003B73] font-bold uppercase">{s.rollNo}</td>
                                         <td className="px-6 py-4 font-medium text-gray-800">{s.name}</td>
                                         <td className="px-6 py-4 text-center text-gray-600">{internal}</td>
                                         <td className="px-6 py-4 text-center text-gray-600">{external}</td>

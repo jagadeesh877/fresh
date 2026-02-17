@@ -13,6 +13,12 @@ const EnterMarks = () => {
     const [saving, setSaving] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
 
+    const maxMarks = {
+        test: 60,
+        assignment: 20,
+        attendance: 20
+    };
+
     useEffect(() => {
         fetchAssignments();
     }, []);
@@ -59,10 +65,10 @@ const EnterMarks = () => {
             return;
         }
 
-        const maxMarks = { test: 60, assignment: 20, attendance: 20 };
         const numVal = parseFloat(value);
 
-        if (value !== '' && (isNaN(numVal) || numVal < 0 || numVal > maxMarks[field])) {
+        // Allow -1 for absentees, or 0 to maxMarks
+        if (value !== '' && (isNaN(numVal) || (numVal < -1) || (numVal > maxMarks[field]))) {
             return;
         }
 
@@ -142,19 +148,25 @@ const EnterMarks = () => {
 
         // Add rows
         students.forEach((s, idx) => {
-            const test = parseFloat(s.marks[`${selectedExam}_test`] || 0);
-            const assign = parseFloat(s.marks[`${selectedExam}_assignment`] || 0);
-            const attend = parseFloat(s.marks[`${selectedExam}_attendance`] || 0);
+            const rawTest = s.marks[`${selectedExam}_test`];
+            const rawAssign = s.marks[`${selectedExam}_assignment`];
+            const rawAttend = s.marks[`${selectedExam}_attendance`];
+
+            const isAbs = (rawTest === -1 || rawAssign === -1 || rawAttend === -1);
+
+            const test = parseFloat(rawTest === -1 || rawTest === null ? 0 : rawTest);
+            const assign = parseFloat(rawAssign === -1 || rawAssign === null ? 0 : rawAssign);
+            const attend = parseFloat(rawAttend === -1 || rawAttend === null ? 0 : rawAttend);
             const total = test + assign + attend;
 
             worksheet.addRow({
                 sno: idx + 1,
-                regNo: s.registerNumber,
+                regNo: s.rollNo, // Primary Academic ID
                 name: s.name,
-                test: test,
-                assign: assign,
-                attend: attend,
-                total: total
+                test: rawTest === -1 ? 'ABSENT' : test,
+                assign: rawAssign === -1 ? 'ABSENT' : assign,
+                attend: rawAttend === -1 ? 'ABSENT' : attend,
+                total: isAbs ? 'ABSENT' : total
             });
         });
 
@@ -258,8 +270,9 @@ const EnterMarks = () => {
                                 <thead className="bg-gray-50 border-b-2 border-gray-200">
                                     <tr>
                                         <th className="p-4 text-left font-bold text-gray-700 w-16">S.No</th>
+                                        <th className="p-4 text-left font-bold text-gray-700">Roll Number</th>
+                                        <th className="p-4 text-left font-bold text-gray-700">Reg No</th>
                                         <th className="p-4 text-left font-bold text-gray-700">Student Name</th>
-                                        <th className="p-4 text-left font-bold text-gray-700">Roll No</th>
                                         <th className="p-4 text-center font-bold text-gray-700 bg-blue-50 w-32">
                                             Test<br /><span className="text-xs font-normal">(60)</span>
                                         </th>
@@ -276,28 +289,30 @@ const EnterMarks = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {students.map((s, idx) => {
-                                        const test = parseFloat(s.marks[`${selectedExam}_test`] || 0);
-                                        const assign = parseFloat(s.marks[`${selectedExam}_assignment`] || 0);
-                                        const attend = parseFloat(s.marks[`${selectedExam}_attendance`] || 0);
+                                        const cleanMark = (val) => (val === -1 || val === null || val === undefined) ? 0 : parseFloat(val);
+                                        const test = cleanMark(s.marks[`${selectedExam}_test`]);
+                                        const assign = cleanMark(s.marks[`${selectedExam}_assignment`]);
+                                        const attend = cleanMark(s.marks[`${selectedExam}_attendance`]);
                                         const total = test + assign + attend;
 
                                         return (
                                             <tr key={s.studentId} className="hover:bg-gray-50 transition-colors">
                                                 <td className="p-4 text-gray-600 font-mono">{idx + 1}</td>
+                                                <td className="p-4 font-mono text-[#003B73] font-bold uppercase">{s.rollNo}</td>
+                                                <td className="p-4 font-mono text-gray-500 text-sm italic">{s.registerNumber || '-'}</td>
                                                 <td className="p-4 font-semibold text-gray-800">{s.name}</td>
-                                                <td className="p-4 font-mono text-sm text-gray-600 uppercase">{s.registerNumber}</td>
                                                 <td className="p-2">
                                                     <input
                                                         type="number"
                                                         className={`w-full p-2 border-2 rounded-lg text-center font-semibold transition-all ${isLocked
                                                             ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
-                                                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                            : s.marks[`${selectedExam}_test`] === -1 ? 'bg-red-50 border-red-200 text-red-600' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                                             }`}
-                                                        value={s.marks[`${selectedExam}_test`] || ''}
+                                                        value={s.marks[`${selectedExam}_test`] === -1 ? '-1' : (s.marks[`${selectedExam}_test`] ?? '')}
                                                         onChange={e => handleInputChange(s.studentId, 'test', e.target.value)}
-                                                        placeholder="0-60"
+                                                        placeholder="Enter -1 for Absent"
                                                         disabled={isLocked}
-                                                        min="0"
+                                                        min="-1"
                                                         max="60"
                                                         step="0.5"
                                                     />
@@ -307,13 +322,13 @@ const EnterMarks = () => {
                                                         type="number"
                                                         className={`w-full p-2 border-2 rounded-lg text-center font-semibold transition-all ${isLocked
                                                             ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
-                                                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                            : s.marks[`${selectedExam}_assignment`] === -1 ? 'bg-red-50 border-red-200 text-red-600' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                                             }`}
-                                                        value={s.marks[`${selectedExam}_assignment`] || ''}
+                                                        value={s.marks[`${selectedExam}_assignment`] === -1 ? '-1' : (s.marks[`${selectedExam}_assignment`] ?? '')}
                                                         onChange={e => handleInputChange(s.studentId, 'assignment', e.target.value)}
                                                         placeholder="0-20"
                                                         disabled={isLocked}
-                                                        min="0"
+                                                        min="-1"
                                                         max="20"
                                                         step="0.5"
                                                     />
@@ -323,9 +338,9 @@ const EnterMarks = () => {
                                                         type="number"
                                                         className={`w-full p-2 border-2 rounded-lg text-center font-semibold transition-all ${isLocked
                                                             ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
-                                                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                            : s.marks[`${selectedExam}_attendance`] === -1 ? 'bg-red-50 border-red-200 text-red-600' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                                             }`}
-                                                        value={s.marks[`${selectedExam}_attendance`] || ''}
+                                                        value={s.marks[`${selectedExam}_attendance`] === -1 ? '-1' : (s.marks[`${selectedExam}_attendance`] ?? '')}
                                                         onChange={e => handleInputChange(s.studentId, 'attendance', e.target.value)}
                                                         placeholder="0-20"
                                                         disabled={isLocked}
@@ -335,7 +350,11 @@ const EnterMarks = () => {
                                                     />
                                                 </td>
                                                 <td className="p-4 text-center">
-                                                    <span className="text-xl font-bold text-[#003B73]">{total.toFixed(1)}</span>
+                                                    {(s.marks[`${selectedExam}_test`] === -1 && s.marks[`${selectedExam}_assignment`] === -1 && s.marks[`${selectedExam}_attendance`] === -1) ? (
+                                                        <span className="text-sm font-black text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100 uppercase tracking-widest">ABSENT</span>
+                                                    ) : (
+                                                        <span className="text-xl font-bold text-[#003B73]">{total.toFixed(1)}</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

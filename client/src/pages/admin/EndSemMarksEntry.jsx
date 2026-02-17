@@ -81,7 +81,7 @@ const EndSemMarksEntry = () => {
         const worksheet = workbook.addWorksheet('Consolidated Results');
 
         worksheet.columns = [
-            { header: 'Register Number', key: 'regNo', width: 20 },
+            { header: 'Roll No', key: 'rollNo', width: 20 },
             { header: 'Name', key: 'name', width: 30 },
             { header: 'Internal (40)', key: 'internal', width: 15 },
             { header: 'External (60)', key: 'external', width: 15 },
@@ -91,7 +91,7 @@ const EndSemMarksEntry = () => {
 
         students.forEach(s => {
             worksheet.addRow({
-                regNo: s.registerNumber,
+                rollNo: s.rollNo,
                 name: s.name,
                 internal: s.internal40,
                 external: s.external60,
@@ -205,7 +205,7 @@ const EndSemMarksEntry = () => {
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Register No</th>
+                            <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Roll No</th>
                             <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Student Name</th>
                             <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest text-center">Internal (40)</th>
                             <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest text-center">External (60)</th>
@@ -235,7 +235,7 @@ const EndSemMarksEntry = () => {
                         ) : (
                             students.map(s => (
                                 <tr key={s.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-8 py-6 font-mono text-sm uppercase text-gray-500 group-hover:text-[#003B73] transition-colors">{s.registerNumber}</td>
+                                    <td className="px-8 py-6 font-mono text-sm uppercase text-[#003B73] font-bold">{s.rollNo}</td>
                                     <td className="px-8 py-6">
                                         <p className="font-bold text-[#003B73] text-lg">{s.name}</p>
                                     </td>

@@ -83,7 +83,7 @@ const StudentsTab = ({ subjectId }) => {
 
     const filteredStudents = students.filter(s =>
         s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.registerNumber.toLowerCase().includes(search.toLowerCase())
+        s.rollNo.toLowerCase().includes(search.toLowerCase())
     );
 
     const exportToExcel = async () => {
@@ -93,7 +93,7 @@ const StudentsTab = ({ subjectId }) => {
 
         // Add columns
         worksheet.columns = [
-            { header: 'Reg No', key: 'regNo', width: 20 },
+            { header: 'Roll No', key: 'rollNo', width: 20 },
             { header: 'Name', key: 'name', width: 30 },
             { header: 'Attendance %', key: 'attendance', width: 15 },
             { header: 'CIA Total', key: 'cia', width: 15 },
@@ -103,10 +103,10 @@ const StudentsTab = ({ subjectId }) => {
         // Add rows
         students.forEach(s => {
             worksheet.addRow({
-                regNo: s.registerNumber,
+                rollNo: s.rollNo,
                 name: s.name,
                 attendance: s.attendancePercentage,
-                cia: s.ciaTotal,
+                cia: s.isCiaAbsent ? 'ABSENT' : s.ciaTotal,
                 status: s.status
             });
         });
@@ -147,7 +147,7 @@ const StudentsTab = ({ subjectId }) => {
                 <table className="w-full">
                     <thead className="bg-gray-50 text-gray-600 text-sm font-semibold">
                         <tr>
-                            <th className="p-4 text-left">Reg No</th>
+                            <th className="p-4 text-left">Roll No</th>
                             <th className="p-4 text-left">Name</th>
                             <th className="p-4 text-center">Attendance</th>
                             <th className="p-4 text-center">CIA Total</th>
@@ -157,7 +157,7 @@ const StudentsTab = ({ subjectId }) => {
                     <tbody className="divide-y divide-gray-100">
                         {filteredStudents.map(s => (
                             <tr key={s.id} className="hover:bg-gray-50">
-                                <td className="p-4 font-mono text-sm">{s.registerNumber}</td>
+                                <td className="p-4 font-mono text-sm text-[#003B73] font-bold">{s.rollNo}</td>
                                 <td className="p-4 font-medium text-gray-800">{s.name}</td>
                                 <td className="p-4 text-center">
                                     <span className={`font-bold ${s.attendancePercentage < 75 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -165,7 +165,11 @@ const StudentsTab = ({ subjectId }) => {
                                     </span>
                                 </td>
                                 <td className="p-4 text-center text-gray-700">
-                                    {s.ciaTotal.toFixed(1)}
+                                    {s.isCiaAbsent ? (
+                                        <span className="text-red-600 font-bold">ABSENT</span>
+                                    ) : (
+                                        s.ciaTotal.toFixed(1)
+                                    )}
                                 </td>
                                 <td className="p-4 text-center">
                                     {s.status === 'Eligible' ? (

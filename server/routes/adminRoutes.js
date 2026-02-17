@@ -8,7 +8,7 @@ const {
     getAbsences, markFacultyAbsent, removeFacultyAbsence, getSubstitutions, assignSubstitute, deleteSubstitution,
     getPendingMarks, getMarksForApproval, approveMarks, approveAllMarks,
     unapproveMarks, unlockMarks, getAllSubjectMarksStatus,
-    exportAttendanceExcel, promoteStudents
+    exportAttendanceExcel, promoteStudents, bulkUploadStudents
 } = require('../controllers/adminController');
 const {
     getSessions, createSession, getHalls, addHall, deleteHall,
@@ -78,6 +78,7 @@ router.get('/attendance/report', getAttendanceReport);
 router.get('/attendance/export-excel', exportAttendanceExcel);
 
 router.post('/students/promote', promoteStudents);
+router.post('/students/bulk', bulkUploadStudents);
 
 // Hall Allocation Routes
 router.get('/hall-allocation/sessions', getSessions);

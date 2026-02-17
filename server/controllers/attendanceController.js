@@ -57,7 +57,7 @@ const getStudentsForAttendance = async (req, res) => {
                 semester: subject.semester,
                 section: section
             },
-            orderBy: { registerNumber: 'asc' }
+            orderBy: { rollNo: 'asc' }
         });
 
         const period = req.query.period ? parseInt(req.query.period) : 0;
@@ -70,6 +70,7 @@ const getStudentsForAttendance = async (req, res) => {
 
         const result = students.map(s => ({
             id: s.id,
+            rollNo: s.rollNo, // Added Roll No
             name: s.name,
             registerNumber: s.registerNumber,
             status: attendanceMap[s.id] || 'PRESENT'
@@ -126,7 +127,8 @@ const getAttendanceReport = async (req, res) => {
                         ...(subjectId && { subjectId: parseInt(subjectId) })
                     }
                 }
-            }
+            },
+            orderBy: { rollNo: 'asc' }
         });
 
         const report = students.map(s => {
@@ -138,6 +140,7 @@ const getAttendanceReport = async (req, res) => {
 
             return {
                 id: s.id,
+                rollNo: s.rollNo,
                 registerNumber: s.registerNumber,
                 name: s.name,
                 totalClasses: total,

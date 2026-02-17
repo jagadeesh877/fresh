@@ -58,7 +58,8 @@ model Department {
 
 model Student {
   id             Int                 @id @default(autoincrement())
-  registerNumber String              @unique
+  rollNo         String              @unique
+  registerNumber String?             @unique
   name           String
   department     String?
   year           Int
@@ -72,6 +73,7 @@ model Student {
   dummyMappings  SubjectDummyMapping[]
   hallAllocations HallAllocation[]
 }
+
 
 model Timetable {
   id            Int            @id @default(autoincrement())

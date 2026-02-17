@@ -128,7 +128,7 @@ const AdminMarksManager = () => {
                         <table className="w-full text-center border-collapse">
                             <thead className="bg-gray-100/50 text-[#003B73] text-[10px] font-black uppercase tracking-[0.2em]">
                                 <tr>
-                                    <th className="px-8 py-8 text-left border-r border-gray-200/50 bg-gray-100/30 w-48">Identifier</th>
+                                    <th className="px-8 py-8 text-left border-r border-gray-200/50 bg-gray-100/30 w-48">Roll No</th>
                                     <th className="px-8 py-8 text-left min-w-[200px]">Profile</th>
                                     <th className="px-6 py-8">CIA Phase 1</th>
                                     <th className="px-6 py-8">CIA Phase 2</th>
@@ -146,7 +146,7 @@ const AdminMarksManager = () => {
                                     return (
                                         <tr key={student.studentId} className="group hover:bg-white transition-all duration-300">
                                             <td className="px-8 py-6 text-left border-r border-gray-100/30 bg-gray-50/50">
-                                                <span className="font-mono text-xs font-black text-gray-400 group-hover:text-[#003B73] transition-colors">{student.registerNumber}</span>
+                                                <span className="font-mono text-xs font-black text-[#003B73] uppercase tracking-tighter">{student.rollNo}</span>
                                             </td>
                                             <td className="px-8 py-6 text-left font-black text-gray-800 text-lg group-hover:text-[#003B73] transition-colors leading-tight">
                                                 {student.name}
@@ -197,7 +197,7 @@ const AdminMarksManager = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-3xl font-black text-[#003B73] tracking-tight">{editingStudent.name}</h3>
-                                        <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Identifier: {editingStudent.registerNumber}</p>
+                                        <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Roll No: {editingStudent.rollNo}</p>
                                     </div>
                                 </div>
                                 <button

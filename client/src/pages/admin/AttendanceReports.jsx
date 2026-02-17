@@ -49,8 +49,8 @@ const AttendanceReports = () => {
         // Simple CSV export logic
         if (reportData.length === 0) return;
 
-        const headers = ["Register No", "Name", "Total Classes", "Present", "OD", "Absent", "Percentage"];
-        const rows = reportData.map(s => [s.registerNumber, s.name, s.totalClasses, s.present, s.od || 0, s.absent, s.percentage + '%']);
+        const headers = ["Roll No", "Name", "Total Classes", "Present", "OD", "Absent", "Percentage"];
+        const rows = reportData.map(s => [s.rollNo, s.name, s.totalClasses, s.present, s.od || 0, s.absent, s.percentage + '%']);
 
         const csvContent = "data:text/csv;charset=utf-8,"
             + headers.join(",") + "\n"
@@ -279,7 +279,7 @@ const AttendanceReports = () => {
                                     return (
                                         <tr key={student.id} className="group hover:bg-white transition-all duration-300">
                                             <td className="px-8 py-6 text-left">
-                                                <span className="font-mono text-xs font-black text-gray-400 group-hover:text-[#003B73] transition-colors">{student.registerNumber}</span>
+                                                <span className="font-mono text-xs font-black text-[#003B73] uppercase tracking-tighter">{student.rollNo}</span>
                                             </td>
                                             <td className="px-8 py-6 text-left">
                                                 <div className="font-black text-gray-800 text-lg group-hover:text-[#003B73] transition-colors leading-tight">

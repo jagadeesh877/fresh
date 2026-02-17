@@ -10,7 +10,8 @@ const validate = (req, res, next) => {
 
 // Student validation
 const validateStudent = [
-    body('registerNumber').notEmpty().isString().trim(),
+    body('rollNo').notEmpty().isString().trim().matches(/^[A-Z][0-9]+$/).withMessage('Roll Number must match format (e.g., E123456)'),
+    body('registerNumber').optional({ nullable: true, checkFalsy: true }).isString().trim().matches(/^\d{10,12}$/).withMessage('Register Number must be 10-12 digits'),
     body('name').notEmpty().isString().trim().isLength({ min: 2, max: 100 }),
     body('department').optional({ nullable: true, checkFalsy: true }).isString(),
     body('year').isInt({ min: 1, max: 4 }),
@@ -42,15 +43,15 @@ const validateSubject = [
 const validateMarks = [
     body('studentId').isInt(),
     body('subjectId').isInt(),
-    body('cia1_test').optional().isFloat({ min: 0, max: 50 }),
-    body('cia1_assignment').optional().isFloat({ min: 0, max: 25 }),
-    body('cia1_attendance').optional().isFloat({ min: 0, max: 25 }),
-    body('cia2_test').optional().isFloat({ min: 0, max: 50 }),
-    body('cia2_assignment').optional().isFloat({ min: 0, max: 25 }),
-    body('cia2_attendance').optional().isFloat({ min: 0, max: 25 }),
-    body('cia3_test').optional().isFloat({ min: 0, max: 50 }),
-    body('cia3_assignment').optional().isFloat({ min: 0, max: 25 }),
-    body('cia3_attendance').optional().isFloat({ min: 0, max: 25 }),
+    body('cia1_test').optional().isFloat({ min: -1, max: 100 }),
+    body('cia1_assignment').optional().isFloat({ min: -1, max: 100 }),
+    body('cia1_attendance').optional().isFloat({ min: -1, max: 100 }),
+    body('cia2_test').optional().isFloat({ min: -1, max: 100 }),
+    body('cia2_assignment').optional().isFloat({ min: -1, max: 100 }),
+    body('cia2_attendance').optional().isFloat({ min: -1, max: 100 }),
+    body('cia3_test').optional().isFloat({ min: -1, max: 100 }),
+    body('cia3_assignment').optional().isFloat({ min: -1, max: 100 }),
+    body('cia3_attendance').optional().isFloat({ min: -1, max: 100 }),
     validate
 ];
 

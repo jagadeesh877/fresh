@@ -495,7 +495,7 @@ const HallAllocation = () => {
                                             <div key={a.id} className="bg-white p-3 rounded-xl shadow-sm text-xs flex justify-between items-center border border-gray-50">
                                                 <div>
                                                     <p className="font-black text-gray-800">{a.student.name}</p>
-                                                    <p className="text-[9px] font-bold text-gray-400 font-mono tracking-tighter">{a.student.registerNumber} • {a.subject.code}</p>
+                                                    <p className="text-[9px] font-bold text-[#003B73] font-mono tracking-tighter uppercase">{a.student.rollNo} • {a.subject.code}</p>
                                                 </div>
                                                 <div className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-black font-mono">
                                                     {a.seatNumber}

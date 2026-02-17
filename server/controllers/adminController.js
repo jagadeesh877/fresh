@@ -181,7 +181,7 @@ const getMarksForApproval = async (req, res) => {
             },
             orderBy: {
                 student: {
-                    registerNumber: 'asc'
+                    rollNo: 'asc'
                 }
             }
         });
@@ -472,7 +472,7 @@ const approveMarks = async (req, res) => {
 // --- Student Management ---
 
 const createStudent = async (req, res) => {
-    let { registerNumber, name, department, year, section, semester } = req.body;
+    let { rollNo, registerNumber, name, department, year, section, semester } = req.body;
     console.log('[DEBUG] createStudent request:', req.body);
     try {
         const parsedYear = parseInt(year);
@@ -483,6 +483,7 @@ const createStudent = async (req, res) => {
 
         const student = await prisma.student.create({
             data: {
+                rollNo,
                 registerNumber,
                 name,
                 department,
@@ -495,7 +496,9 @@ const createStudent = async (req, res) => {
     } catch (error) {
         console.error('[ERROR] createStudent failed:', error);
         if (error.code === 'P2002') {
-            return res.status(400).json({ message: 'A student with this Register Number already exists.' });
+            const target = error.meta?.target || '';
+            const field = target.includes('rollNo') ? 'Roll Number' : 'Register Number';
+            return res.status(400).json({ message: `A student with this ${field} already exists.` });
         }
         res.status(400).json({ message: error.message });
     }
@@ -504,12 +507,11 @@ const createStudent = async (req, res) => {
 
 const updateStudent = async (req, res) => {
     const { id } = req.params;
-    let { registerNumber, name, department, year, section, semester } = req.body;
+    let { rollNo, registerNumber, name, department, year, section, semester } = req.body;
     try {
         const studentId = parseInt(id);
         const parsedYear = parseInt(year);
 
-        // Enforce First Year rules if year is changed to 1
         if (parsedYear === 1) {
             department = null;
         }
@@ -517,6 +519,7 @@ const updateStudent = async (req, res) => {
         const student = await prisma.student.update({
             where: { id: studentId },
             data: {
+                rollNo,
                 registerNumber,
                 name,
                 department,
@@ -528,6 +531,11 @@ const updateStudent = async (req, res) => {
         res.json(student);
     } catch (error) {
         console.error('[ERROR] updateStudent failed:', error);
+        if (error.code === 'P2002') {
+            const target = error.meta?.target || '';
+            const field = target.includes('rollNo') ? 'Roll Number' : 'Register Number';
+            return res.status(400).json({ message: `A student with this ${field} already exists.` });
+        }
         res.status(400).json({ message: error.message });
     }
 }
@@ -585,7 +593,7 @@ const deleteStudent = async (req, res) => {
 const getStudents = async (req, res) => {
     try {
         const students = await prisma.student.findMany({
-            orderBy: { registerNumber: 'asc' }
+            orderBy: { rollNo: 'asc' }
         });
         res.json(students);
     } catch (error) {
@@ -1461,7 +1469,7 @@ const exportAttendanceExcel = async (req, res) => {
                     }
                 }
             },
-            orderBy: { registerNumber: 'asc' }
+            orderBy: { rollNo: 'asc' }
         });
 
         // Get subject info if specific subject
@@ -1483,7 +1491,8 @@ const exportAttendanceExcel = async (req, res) => {
             const status = parseFloat(percentage) >= 75 ? 'Eligible' : 'Shortage';
 
             return {
-                'Reg No': s.registerNumber,
+                'Roll No': s.rollNo,
+                'Reg No': s.registerNumber || '-',
                 'Student Name': s.name,
                 'Department': s.department,
                 'Year': s.year,
@@ -1507,6 +1516,7 @@ const exportAttendanceExcel = async (req, res) => {
 
         // Add columns
         worksheet.columns = [
+            { header: 'Roll No', key: 'rollNo', width: 15 },
             { header: 'Reg No', key: 'regNo', width: 15 },
             { header: 'Student Name', key: 'name', width: 25 },
             { header: 'Department', key: 'dept', width: 15 },
@@ -1527,6 +1537,7 @@ const exportAttendanceExcel = async (req, res) => {
         // Add rows
         excelData.forEach(data => {
             worksheet.addRow({
+                rollNo: data['Roll No'],
                 regNo: data['Reg No'],
                 name: data['Student Name'],
                 dept: data['Department'],
@@ -1572,6 +1583,22 @@ const promoteStudents = async (req, res) => {
             return res.status(400).json({ message: "No students selected for promotion" });
         }
 
+        // Check if any student lacks a Register Number
+        const students = await prisma.student.findMany({
+            where: {
+                id: { in: studentIds.map(id => parseInt(id)) }
+            },
+            select: { id: true, registerNumber: true, rollNo: true }
+        });
+
+        const ineligible = students.filter(s => !s.registerNumber);
+        if (ineligible.length > 0) {
+            return res.status(400).json({
+                message: "Register Number must be assigned before promotion.",
+                details: `Students missing Register Number: ${ineligible.map(s => s.rollNo).join(', ')}`
+            });
+        }
+
         const result = await prisma.student.updateMany({
             where: {
                 id: { in: studentIds.map(id => parseInt(id)) }
@@ -1592,6 +1619,81 @@ const promoteStudents = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+const bulkUploadStudents = async (req, res) => {
+    const { students } = req.body;
+    console.log(`[DEBUG] bulkUploadStudents: processing ${students?.length} records`);
+
+    try {
+        if (!students || !Array.isArray(students)) {
+            return res.status(400).json({ message: 'Invalid student data format' });
+        }
+
+        let createdCount = 0;
+        let updatedCount = 0;
+        let errors = [];
+
+        // Using sequential processing to avoid transaction overhead/complexity for student bulk
+        for (const s of students) {
+            const { rollNo, registerNumber, name, department, year, section, semester } = s;
+
+            if (!rollNo) {
+                errors.push({ rollNo: 'MISSING', error: 'Roll Number is mandatory' });
+                continue;
+            }
+
+            // Alphanumeric validation
+            if (!/^[A-Z][0-9]+$/i.test(rollNo)) {
+                errors.push({ rollNo, error: 'Invalid Roll Number format' });
+                continue;
+            }
+
+            try {
+                const existing = await prisma.student.findUnique({
+                    where: { rollNo }
+                });
+
+                if (existing) {
+                    // Update only Register Number if provided
+                    if (registerNumber) {
+                        await prisma.student.update({
+                            where: { rollNo },
+                            data: { registerNumber }
+                        });
+                        updatedCount++;
+                    }
+                } else {
+                    // Create new student
+                    await prisma.student.create({
+                        data: {
+                            rollNo,
+                            registerNumber: registerNumber || null,
+                            name: name || 'Unknown',
+                            department: department || null,
+                            year: parseInt(year) || 1,
+                            section: section || 'A',
+                            semester: parseInt(semester) || 1
+                        }
+                    });
+                    createdCount++;
+                }
+            } catch (err) {
+                errors.push({ rollNo, error: err.message });
+            }
+        }
+
+        res.json({
+            message: `Bulk processing complete. Created: ${createdCount}, Updated: ${updatedCount}`,
+            created: createdCount,
+            updated: updatedCount,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        console.error('[ERROR] bulkUploadStudents failed:', error);
+        res.status(500).json({ message: error.message });
+    }
+}
 
 module.exports = {
     getAllFaculty,
@@ -1629,5 +1731,6 @@ module.exports = {
 
     // Attendance Export
     exportAttendanceExcel,
-    promoteStudents
+    promoteStudents,
+    bulkUploadStudents
 };
