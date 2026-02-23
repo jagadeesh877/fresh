@@ -574,22 +574,46 @@ const exportClassAttendanceExcel = async (req, res) => {
             { header: 'Roll No', key: 'rollNo', width: 15 },
             { header: 'Reg No', key: 'regNo', width: 15 },
             { header: 'Student Name', key: 'name', width: 25 },
+            { header: 'Department', key: 'dept', width: 15 },
+            { header: 'Year', key: 'year', width: 8 },
+            { header: 'Semester', key: 'sem', width: 10 },
+            { header: 'Section', key: 'sec', width: 10 },
+            { header: 'Presents', key: 'present', width: 12 },
+            { header: 'Absents', key: 'absent', width: 12 },
+            { header: 'OD', key: 'od', width: 12 },
             { header: 'Attendance %', key: 'percentage', width: 15 },
             { header: 'Status', key: 'status', width: 15 }
         ];
 
         students.forEach(s => {
             const total = s.attendance.length;
-            const present = s.attendance.filter(a => a.status === 'PRESENT' || a.status === 'OD').length;
-            const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : '0.00';
+            const od = s.attendance.filter(a => a.status === 'OD').length;
+            const presentOnly = s.attendance.filter(a => a.status === 'PRESENT').length;
+            const presentTotal = presentOnly + od;
+            const absent = total - presentTotal;
+            const percentage = total > 0 ? ((presentTotal / total) * 100).toFixed(2) : '0.00';
+
             worksheet.addRow({
                 rollNo: s.rollNo,
                 regNo: s.registerNumber || '-',
                 name: s.name,
+                dept: s.department,
+                year: s.year,
+                sem: s.semester,
+                sec: s.section,
+                present: presentOnly,
+                absent: absent,
+                od: od,
                 percentage,
                 status: parseFloat(percentage) >= 75 ? 'Eligible' : 'Shortage'
             });
         });
+
+        // Add footer note
+        if (students.length > 0) {
+            worksheet.addRow([]);
+            worksheet.addRow(['Note: OD (On Duty) is treated as Present for all attendance calculations.']);
+        }
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename=Attendance_${subjectId}.xlsx`);

@@ -195,9 +195,36 @@ const AttendanceTab = ({ subjectId, subject }) => {
     const [attendance, setAttendance] = useState([]);
     const [exporting, setExporting] = useState(false);
 
+    // Detailed Report State
+    const [fromDate, setFromDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]);
+    const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
+    const [detailedReport, setDetailedReport] = useState(null);
+    const [fetchingReport, setFetchingReport] = useState(false);
+    const [viewMode, setViewMode] = useState('logs'); // 'logs' or 'detailed'
+
     useEffect(() => {
         api.get(`/faculty/class/${subjectId}/attendance`).then(res => setAttendance(res.data));
     }, [subjectId]);
+
+    const fetchDetailedReport = async () => {
+        setFetchingReport(true);
+        try {
+            const res = await api.get('/faculty/attendance/report', {
+                params: {
+                    subjectId,
+                    fromDate,
+                    toDate
+                }
+            });
+            setDetailedReport(res.data);
+            setViewMode('detailed');
+        } catch (err) {
+            console.error(err);
+            alert("Failed to fetch detailed report");
+        } finally {
+            setFetchingReport(false);
+        }
+    };
 
     const exportToExcel = async () => {
         setExporting(true);
@@ -224,42 +251,176 @@ const AttendanceTab = ({ subjectId, subject }) => {
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Attendance History</h3>
-                <button
-                    onClick={exportToExcel}
-                    disabled={exporting || attendance.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <FileSpreadsheet size={18} /> {exporting ? 'Exporting...' : 'Export to Excel'}
-                </button>
+            {/* Range Selection Header */}
+            <div className="premium-card p-6 mb-8 border-l-4 border-[#003B73] bg-gray-50/50">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">From Date</label>
+                        <input
+                            type="date"
+                            className="input-field w-full"
+                            value={fromDate}
+                            onChange={(e) => setFromDate(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">To Date</label>
+                        <input
+                            type="date"
+                            className="input-field w-full"
+                            value={toDate}
+                            onChange={(e) => setToDate(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={fetchDetailedReport}
+                            className="btn btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+                        >
+                            <Search size={18} /> {fetchingReport ? 'Loading...' : 'View History'}
+                        </button>
+                    </div>
+                    <div>
+                        <button
+                            onClick={() => setViewMode(viewMode === 'logs' ? 'detailed' : 'logs')}
+                            className="w-full py-3 text-[#003B73] font-bold text-sm hover:underline"
+                        >
+                            Switch to {viewMode === 'logs' ? 'Detailed View' : 'Recent Logs'}
+                        </button>
+                    </div>
+                </div>
             </div>
-            {attendance.length === 0 ? (
-                <p className="text-gray-500">No attendance records found.</p>
-            ) : (
-                <div className="space-y-3">
-                    {attendance.map((record, idx) => (
-                        <div key={idx} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
-                                    <Calendar size={20} />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-gray-900">{record.date}</span>
-                                        <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">{subject.code}</span>
+
+            {viewMode === 'logs' ? (
+                <>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-gray-800">Recent Markings</h3>
+                        <button
+                            onClick={exportToExcel}
+                            disabled={exporting || attendance.length === 0}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <FileSpreadsheet size={18} /> {exporting ? 'Exporting...' : 'Export to Excel'}
+                        </button>
+                    </div>
+                    {attendance.length === 0 ? (
+                        <p className="text-gray-500">No attendance records found.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {attendance.map((record, idx) => (
+                                <div key={idx} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                                            <Calendar size={20} />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-gray-900">{record.date}</span>
+                                                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">{subject.code}</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-gray-500">{subject.name}</p>
+                                        </div>
                                     </div>
-                                    <p className="text-sm font-medium text-gray-500">{subject.name}</p>
+                                    <div className="text-right w-full md:w-auto flex flex-row md:flex-col justify-between items-center md:items-end border-t md:border-t-0 pt-3 md:pt-0">
+                                        <p className="text-base font-black text-[#003B73]">{record.percentage}% Present</p>
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-tighter">
+                                            <span className="text-emerald-600">{record.present} Present</span> • <span className="text-red-600">{record.absent} Absent</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div className="animate-fadeIn">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 p-4 bg-[#003B73]/5 rounded-2xl border border-[#003B73]/10">
+                        <div>
+                            <h4 className="text-lg font-black text-[#003B73] uppercase tracking-tight">{subject.code} - {subject.name}</h4>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
+                                Attendance History: {fromDate} to {toDate}
+                            </p>
+                        </div>
+                        <div className="bg-white px-6 py-3 rounded-xl shadow-sm border border-gray-100 text-center">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Actual Periods Conducted</p>
+                            <p className="text-2xl font-black text-[#003B73]">
+                                {detailedReport?.totalPeriodsConducted || 0}
+                            </p>
+                        </div>
+                    </div>
+
+                    {viewMode === 'detailed' && detailedReport && detailedReport.students && detailedReport.students.length > 0 ? (
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-gray-800">Detailed Attendance Report</h3>
+                                    <p className="text-sm text-gray-500">
+                                        {subject?.code} - {subject?.name} | Total Periods Conducted: <span className="font-bold text-blue-600">{detailedReport.totalPeriodsConducted}</span>
+                                    </p>
                                 </div>
                             </div>
-                            <div className="text-right w-full md:w-auto flex flex-row md:flex-col justify-between items-center md:items-end border-t md:border-t-0 pt-3 md:pt-0">
-                                <p className="text-base font-black text-[#003B73]">{record.percentage}% Present</p>
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-tighter">
-                                    <span className="text-emerald-600">{record.present} Present</span> • <span className="text-red-600">{record.absent} Absent</span>
-                                </p>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 text-gray-600 uppercase text-xs font-semibold">
+                                        <tr>
+                                            <th className="px-6 py-3">Roll No</th>
+                                            <th className="px-6 py-3">Reg No</th>
+                                            <th className="px-6 py-3">Name</th>
+                                            <th className="px-6 py-4 text-center">Presents</th>
+                                            <th className="px-6 py-4 text-center">Absents</th>
+                                            <th className="px-6 py-4 text-center">OD</th>
+                                            <th className="px-6 py-4 text-center">Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {detailedReport.students?.map((student) => {
+                                            const perc = parseFloat(student.percentage);
+                                            let colorClass = "text-green-600";
+                                            if (perc < 75) colorClass = "text-red-600";
+                                            else if (perc < 85) colorClass = "text-orange-600";
+
+                                            return (
+                                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 font-medium text-gray-900">{student.rollNo}</td>
+                                                    <td className="px-6 py-4 text-gray-500">{student.registerNumber || '-'}</td>
+                                                    <td className="px-6 py-4 text-gray-700">{student.name}</td>
+                                                    <td className="px-6 py-4 text-center font-semibold text-blue-600">{student.present}</td>
+                                                    <td className="px-6 py-4 text-center font-semibold text-red-500">{student.absent}</td>
+                                                    <td className="px-6 py-4 text-center font-semibold text-purple-500">{student.od}</td>
+                                                    <td className={`px-6 py-4 text-center font-bold ${colorClass}`}>
+                                                        {student.percentage}%
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    ))}
+                    ) : (
+                        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                            <table className="w-full">
+                                <thead className="bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest">
+                                    <tr>
+                                        <th className="p-4 text-left border-b border-gray-200">Roll No</th>
+                                        <th className="p-4 text-left border-b border-gray-200">Reg No</th>
+                                        <th className="p-4 text-left border-b border-gray-200">Name</th>
+                                        <th className="p-4 text-center border-b border-gray-200">Presents</th>
+                                        <th className="p-4 text-center border-b border-gray-200">Absents</th>
+                                        <th className="p-4 text-center border-b border-gray-200">OD</th>
+                                        <th className="p-4 text-center border-b border-gray-200">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    <tr>
+                                        <td colSpan="7" className="p-10 text-center text-gray-400 font-bold italic">
+                                            No statistics found for the selected range.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

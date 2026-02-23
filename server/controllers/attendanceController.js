@@ -111,12 +111,40 @@ const getAttendanceReport = async (req, res) => {
     const { department, year, section, fromDate, toDate, subjectId } = req.query;
     try {
         const where = {};
-        if (department) {
-            const deptFilter = await getDeptCriteria(department);
-            Object.assign(where, deptFilter);
+
+        // If subjectId is provided but no other criteria, get department/semester/section from assignment
+        if (subjectId && !department && !year && !section) {
+            // Priority: Try to find assignment for the LOGGED-IN faculty first
+            let assignment = null;
+            if (req.user.role === 'FACULTY' || req.user.role === 'EXTERNAL_STAFF') {
+                assignment = await prisma.facultyAssignment.findFirst({
+                    where: { subjectId: parseInt(subjectId), facultyId: parseInt(req.user.id) },
+                    include: { subject: true }
+                });
+            }
+
+            // Fallback: If not found or user is Admin, get any assignment for that subject
+            if (!assignment) {
+                assignment = await prisma.facultyAssignment.findFirst({
+                    where: { subjectId: parseInt(subjectId) },
+                    include: { subject: true }
+                });
+            }
+
+            if (assignment) {
+                const deptFilter = await getDeptCriteria(assignment.subject.department);
+                Object.assign(where, deptFilter);
+                where.semester = assignment.subject.semester;
+                where.section = assignment.section;
+            }
+        } else {
+            if (department) {
+                const deptFilter = await getDeptCriteria(department);
+                Object.assign(where, deptFilter);
+            }
+            if (year) where.year = parseInt(year);
+            if (section) where.section = section;
         }
-        if (year) where.year = parseInt(year);
-        if (section) where.section = section;
 
         const students = await prisma.student.findMany({
             where: { ...where },
@@ -136,7 +164,7 @@ const getAttendanceReport = async (req, res) => {
             const present = s.attendance.filter(a => a.status === 'PRESENT' || a.status === 'OD').length;
             const od = s.attendance.filter(a => a.status === 'OD').length;
             const absent = total - present;
-            const percentage = total > 0 ? (present / total) * 100 : 0;
+            const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : '0.00';
 
             return {
                 id: s.id,
@@ -144,14 +172,25 @@ const getAttendanceReport = async (req, res) => {
                 registerNumber: s.registerNumber,
                 name: s.name,
                 totalClasses: total,
-                present: present,
-                od: od,
-                absent: absent,
-                percentage: percentage.toFixed(2)
+                present,
+                od,
+                absent,
+                percentage
             };
         });
 
-        res.json(report);
+        const distinctSlots = await prisma.studentAttendance.groupBy({
+            by: ['date', 'period'],
+            where: {
+                subjectId: parseInt(subjectId),
+                date: { gte: fromDate, lte: toDate }
+            }
+        });
+
+        res.json({
+            students: report,
+            totalPeriodsConducted: distinctSlots.length
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

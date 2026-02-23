@@ -1329,6 +1329,7 @@ const saveTimetable = async (req, res) => {
                         section,
                         day: entry.day,
                         period: parseInt(entry.period),
+                        subjectId: entry.subjectId ? parseInt(entry.subjectId) : null,
                         subjectName: entry.subjectName,
                         facultyName: entry.facultyName,
                         facultyId: entry.facultyId ? parseInt(entry.facultyId) : null,
@@ -1491,70 +1492,49 @@ const exportAttendanceExcel = async (req, res) => {
             const status = parseFloat(percentage) >= 75 ? 'Eligible' : 'Shortage';
 
             return {
-                'Roll No': s.rollNo,
-                'Reg No': s.registerNumber || '-',
-                'Student Name': s.name,
-                'Department': s.department,
-                'Year': s.year,
-                'Semester': s.semester,
-                'Section': s.section,
-                'Subject Code': subjectInfo ? subjectInfo.code : 'All',
-                'Subject Name': subjectInfo ? subjectInfo.name : 'All Subjects',
-                'Total Classes': total,
-                'Present': presentOnly,
-                'OD': od,
-                'Absent': absent,
-                'Effective Present': effectivePresent,
-                'Attendance %': percentage,
-                'Status': status
+                rollNo: s.rollNo,
+                regNo: s.registerNumber || '-',
+                name: s.name,
+                dept: s.department,
+                year: s.year,
+                sem: s.semester,
+                sec: s.section,
+                code: subjectInfo ? subjectInfo.code : 'All',
+                subject: subjectInfo ? subjectInfo.name : 'All Subjects',
+                total: total,
+                present: presentOnly,
+                od: od,
+                absent: absent,
+                effective: effectivePresent,
+                percentage: percentage,
+                status: status
             };
         });
 
         // Create workbook and worksheet
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Attendance Report');
-
-        // Add columns
         worksheet.columns = [
             { header: 'Roll No', key: 'rollNo', width: 15 },
             { header: 'Reg No', key: 'regNo', width: 15 },
             { header: 'Student Name', key: 'name', width: 25 },
             { header: 'Department', key: 'dept', width: 15 },
-            { header: 'Year', key: 'year', width: 10 },
+            { header: 'Year', key: 'year', width: 8 },
             { header: 'Semester', key: 'sem', width: 10 },
             { header: 'Section', key: 'sec', width: 10 },
             { header: 'Subject Code', key: 'code', width: 15 },
             { header: 'Subject Name', key: 'subject', width: 30 },
             { header: 'Total Classes', key: 'total', width: 15 },
-            { header: 'Present', key: 'present', width: 10 },
+            { header: 'Presents', key: 'present', width: 12 },
             { header: 'OD', key: 'od', width: 10 },
-            { header: 'Absent', key: 'absent', width: 10 },
+            { header: 'Absents', key: 'absent', width: 12 },
             { header: 'Effective Present', key: 'effective', width: 15 },
             { header: 'Attendance %', key: 'percentage', width: 15 },
             { header: 'Status', key: 'status', width: 15 }
         ];
 
         // Add rows
-        excelData.forEach(data => {
-            worksheet.addRow({
-                rollNo: data['Roll No'],
-                regNo: data['Reg No'],
-                name: data['Student Name'],
-                dept: data['Department'],
-                year: data['Year'],
-                sem: data['Semester'],
-                sec: data['Section'],
-                code: data['Subject Code'],
-                subject: data['Subject Name'],
-                total: data['Total Classes'],
-                present: data['Present'],
-                od: data['OD'],
-                absent: data['Absent'],
-                effective: data['Effective Present'],
-                percentage: data['Attendance %'],
-                status: data['Status']
-            });
-        });
+        worksheet.addRows(excelData);
 
         // Add footer note
         if (excelData.length > 0) {

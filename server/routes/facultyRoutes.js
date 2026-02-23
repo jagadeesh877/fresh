@@ -1,6 +1,6 @@
 const express = require('express');
 const { getAssignedSubjects, getSubjectMarks, updateMarks, getFacultyDashboardStats, getMyTimetable, getClassDetails, getClassStudents, getClassAttendance, exportClassAttendanceExcel } = require('../controllers/facultyController');
-const { getStudentsForAttendance, submitAttendance } = require('../controllers/attendanceController');
+const { getStudentsForAttendance, submitAttendance, getAttendanceReport } = require('../controllers/attendanceController');
 const { verifyToken, isFaculty } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -21,5 +21,6 @@ router.post('/marks', updateMarks);
 // Attendance Routes
 router.get('/attendance/students', getStudentsForAttendance);
 router.post('/attendance', submitAttendance);
+router.get('/attendance/report', getAttendanceReport);
 
 module.exports = router;

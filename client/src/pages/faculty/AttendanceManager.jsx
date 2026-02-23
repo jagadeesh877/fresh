@@ -7,6 +7,8 @@ const AttendanceManager = () => {
     const [selectedAssignment, setSelectedAssignment] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [students, setStudents] = useState([]);
+    const [periods, setPeriods] = useState([]);
+    const [selectedPeriod, setSelectedPeriod] = useState('');
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [alreadyTaken, setAlreadyTaken] = useState(false);
@@ -14,6 +16,16 @@ const AttendanceManager = () => {
     useEffect(() => {
         fetchAssignments();
     }, []);
+
+    useEffect(() => {
+        if (selectedAssignment && selectedDate) {
+            fetchPeriods();
+        } else {
+            setPeriods([]);
+            setSelectedPeriod('');
+            setStudents([]);
+        }
+    }, [selectedAssignment, selectedDate]);
 
     const fetchAssignments = async () => {
         try {
@@ -28,8 +40,42 @@ const AttendanceManager = () => {
         }
     };
 
+    const fetchPeriods = async () => {
+        try {
+            const assignment = assignments.find(a => a.id === parseInt(selectedAssignment));
+            if (!assignment) return;
+
+            const res = await api.get('/faculty/timetable', {
+                params: { date: selectedDate }
+            });
+
+            // Calculate day name for filtering (e.g., 'MON')
+            const dateObj = new Date(selectedDate);
+            const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const currentDayName = dayNames[dateObj.getUTCDay()];
+
+            // Filter timetable for this specific class and day
+            // We match by subjectId (ideal) or subjectName (fallback for old data)
+            const matchingPeriods = res.data.filter(t => {
+                const dayMatch = t.day === currentDayName;
+                const sectionMatch = t.section === assignment.section;
+                const subjectMatch = t.subjectId === assignment.subjectId ||
+                    t.subjectName === assignment.subject.name;
+
+                return dayMatch && sectionMatch && subjectMatch;
+            });
+
+            setPeriods(matchingPeriods);
+            setSelectedPeriod(''); // Reset period when date/class changes
+            setStudents([]); // Reset students
+        } catch (err) {
+            console.error("Failed to fetch periods:", err);
+            setPeriods([]);
+        }
+    };
+
     const fetchStudents = async () => {
-        if (!selectedAssignment) return;
+        if (!selectedAssignment || !selectedPeriod) return;
         setLoading(true);
         try {
             const assignment = assignments.find(a => a.id === parseInt(selectedAssignment));
@@ -39,14 +85,12 @@ const AttendanceManager = () => {
                 params: {
                     subjectId: assignment.subjectId,
                     section: assignment.section,
-                    date: selectedDate
+                    date: selectedDate,
+                    period: selectedPeriod
                 }
             });
 
             // Add 'status' field to local state if not present (default PRESENT)
-            // The API returns status if already taken, or default PRESENT if not.
-            // But we need to make it mutable in UI without changing 'status' prop directly if strictly react, 
-            // but here we can just map it.
             const studentList = res.data.students.map(s => ({
                 ...s,
                 status: s.status || 'PRESENT'
@@ -95,7 +139,7 @@ const AttendanceManager = () => {
             await api.post('/faculty/attendance', {
                 subjectId: assignment.subjectId,
                 date: selectedDate,
-                // period: 1, // Optional: add period selector UI later if needed
+                period: parseInt(selectedPeriod),
                 attendanceData
             });
 
@@ -119,7 +163,7 @@ const AttendanceManager = () => {
             </div>
 
             {/* Controls */}
-            <div className="premium-card p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-l-4 border-[#003B73]">
+            <div className="premium-card p-6 grid grid-cols-1 md:grid-cols-4 gap-4 border-l-4 border-[#003B73]">
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Select Class</label>
                     <select
@@ -144,10 +188,29 @@ const AttendanceManager = () => {
                         onChange={e => setSelectedDate(e.target.value)}
                     />
                 </div>
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Select Period</label>
+                    <select
+                        className="input-field w-full"
+                        value={selectedPeriod}
+                        onChange={e => setSelectedPeriod(e.target.value)}
+                        disabled={periods.length === 0}
+                    >
+                        <option value="">-- Select Period --</option>
+                        {periods.map(p => (
+                            <option key={p.id} value={p.period}>
+                                Period {p.period} ({p.isSubstitute ? 'Substitute' : 'Regular'})
+                            </option>
+                        ))}
+                    </select>
+                    {periods.length === 0 && selectedAssignment && (
+                        <p className="text-[10px] text-red-500 mt-1 italic">No periods assigned for this day.</p>
+                    )}
+                </div>
                 <div className="flex items-end">
                     <button
                         onClick={fetchStudents}
-                        disabled={!selectedAssignment || loading}
+                        disabled={!selectedAssignment || !selectedPeriod || loading}
                         className="btn btn-primary w-full flex justify-center items-center gap-2"
                     >
                         {loading ? 'Loading...' : 'Fetch Students'} <Search size={18} />

@@ -218,8 +218,10 @@ const TimetableManager = () => {
         const key = `${day} -${period} `;
 
         let fId = null;
+        let sId = null;
         const subj = subjects?.find(s => s.name === selectedSubject);
         if (subj) {
+            sId = subj.id;
             const assignment = subj.assignments?.find(a => a.section === section);
             if (assignment) fId = assignment.facultyId;
         }
@@ -230,6 +232,7 @@ const TimetableManager = () => {
                 day,
                 period,
                 duration: selectedDuration,
+                subjectId: sId,
                 subjectName: selectedSubject,
                 facultyName: selectedFaculty,
                 facultyId: fId,
