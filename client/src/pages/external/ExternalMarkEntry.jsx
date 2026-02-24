@@ -109,41 +109,50 @@ const ExternalMarkEntry = () => {
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar p-1">
-                                    {data.dummyList.map((item) => (
-                                        <div key={item.dummyNumber} className="flex items-center justify-between p-6 bg-gray-50/50 border border-gray-200 rounded-[24px] hover:border-blue-300 hover:bg-white transition-all group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-white rounded-2xl border border-gray-200 flex items-center justify-center font-black text-[#003B73] shadow-sm group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">
-                                                    #
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-gray-400 uppercase tracking-widest mb-0.5">Dummy ID</p>
-                                                    <p className="text-xl font-black text-[#003B73]">{item.dummyNumber}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className="relative">
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        step="0.5"
-                                                        placeholder="0.0"
-                                                        className="w-32 p-4 bg-white rounded-2xl border-2 border-transparent focus:border-blue-600 outline-none font-black text-center text-2xl text-[#003B73] shadow-inner transition-all"
-                                                        value={marks[item.dummyNumber] || ''}
-                                                        onChange={(e) => handleMarkChange(item.dummyNumber, e.target.value)}
-                                                        required
-                                                    />
-                                                    {marks[item.dummyNumber] !== undefined && (
-                                                        <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1 shadow-lg">
-                                                            <CheckCircle2 size={16} />
+                                <div className="border border-gray-200 rounded-2xl overflow-hidden mb-6">
+                                    <table className="w-full text-center border-collapse bg-white">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b border-gray-200 text-xs font-black text-gray-500 uppercase tracking-widest">
+                                                <th className="p-4 border-r border-gray-200 w-24">Sl.No</th>
+                                                <th className="p-4 border-r border-gray-200">Dummy Number</th>
+                                                <th className="p-4 w-48">Marks</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {data.dummyList.map((item, idx) => (
+                                                <tr key={item.dummyNumber} className="border-b border-gray-100 hover:bg-blue-50/50 transition-colors">
+                                                    <td className="p-4 border-r border-gray-100 font-bold text-gray-600">{idx + 1}</td>
+                                                    <td className="p-4 border-r border-gray-100 font-black text-[#003B73] text-lg">{item.dummyNumber}</td>
+                                                    <td className="p-4 relative">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                step="0.5"
+                                                                placeholder="0.0"
+                                                                className="w-24 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-blue-600 outline-none font-black text-center text-lg text-[#003B73] transition-all"
+                                                                value={marks[item.dummyNumber] || ''}
+                                                                onChange={(e) => handleMarkChange(item.dummyNumber, e.target.value)}
+                                                                required
+                                                            />
+                                                            <span className="font-bold text-gray-400">/ 100</span>
+                                                            {marks[item.dummyNumber] !== undefined && marks[item.dummyNumber] !== '' && (
+                                                                <div className="absolute right-4 text-green-500">
+                                                                    <CheckCircle2 size={18} />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <span className="font-black text-gray-300 text-lg">/ 100</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {data.dummyList.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="3" className="p-10 text-gray-400 font-bold">No dummy numbers available for evaluation.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
 
                                 <div className="pt-8 border-t border-gray-100 flex justify-end">

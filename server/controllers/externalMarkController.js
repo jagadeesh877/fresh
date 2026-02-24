@@ -20,29 +20,25 @@ exports.getAssignedDummyList = async (req, res) => {
             return res.status(403).json({ message: "Unauthorized access to this assignment" });
         }
 
-        // 2. Fetch dummy numbers for this subject
+        // 2. Fetch dummy numbers for this subject that are LOCKED and PRESENT
         const mappings = await prisma.subjectDummyMapping.findMany({
             where: {
-                subjectId: assignment.subjectId
+                subjectId: assignment.subjectId,
+                mappingLocked: true,
+                isAbsent: false
             },
             select: {
-                dummyNumber: true
+                dummyNumber: true,
+                marks: true
+            },
+            orderBy: {
+                dummyNumber: 'asc'
             }
-        });
-
-        // 3. Fetch existing marks to show status
-        const existingMarks = await prisma.externalMark.findMany({
-            where: { subjectId: assignment.subjectId }
-        });
-
-        const marksMap = {};
-        existingMarks.forEach(m => {
-            marksMap[m.dummyNumber] = m.rawExternal100;
         });
 
         const resultList = mappings.map(m => ({
             dummyNumber: m.dummyNumber,
-            mark: marksMap[m.dummyNumber] || null
+            mark: m.marks
         }));
 
         res.json({
@@ -75,33 +71,33 @@ exports.submitMarks = async (req, res) => {
 
         // 2. Process each mark
         const submissions = [];
-        for (const entry of marks) {
-            const { dummyNumber, rawMark } = entry;
+        await prisma.$transaction(async (tx) => {
+            for (const entry of marks) {
+                const { dummyNumber, rawMark } = entry;
 
-            // 🧱 LOCK ENFORCEMENT
-            const mapping = await prisma.subjectDummyMapping.findUnique({
-                where: { dummyNumber }
-            });
+                const raw100 = parseFloat(rawMark);
+                if (isNaN(raw100)) continue; // Skip invalid entries
 
-            if (mapping && mapping.mappingLocked) {
-                continue; // Skip locked mappings for integrity
-            }
+                if (raw100 < 0 || raw100 > 100) {
+                    console.warn(`Invalid external mark: ${raw100} for dummy ${dummyNumber}`);
+                    continue;
+                }
 
-            const raw100 = parseFloat(rawMark);
+                const converted60 = (raw100 / 100) * 60;
 
-            if (isNaN(raw100)) continue; // Skip invalid entries
+                // Update marks in SubjectDummyMapping directly as requested
+                await tx.subjectDummyMapping.updateMany({
+                    where: {
+                        dummyNumber: dummyNumber,
+                        subjectId: subjectInt
+                    },
+                    data: {
+                        marks: raw100
+                    }
+                });
 
-            // 🧱 RANGE VALIDATION
-            if (raw100 < 0 || raw100 > 100) {
-                console.warn(`Invalid external mark: ${raw100} for dummy ${dummyNumber}`);
-                continue;
-            }
-
-            const converted60 = (raw100 / 100) * 60; // Use precise float for consolidation later
-
-            try {
-                // Update or create external mark
-                const submission = await prisma.externalMark.upsert({
+                // Also maintain the ExternalMark audit table
+                const submission = await tx.externalMark.upsert({
                     where: { dummyNumber },
                     update: {
                         rawExternal100: raw100,
@@ -118,22 +114,19 @@ exports.submitMarks = async (req, res) => {
                     }
                 });
                 submissions.push(submission);
-            } catch (err) {
-                console.error(`Error saving mark for dummy ${dummyNumber}:`, err);
-                throw new Error(`Failed to save mark for dummy ${dummyNumber}: ${err.message}`);
             }
-        }
 
-        // 3. Update assignment status to COMPLETED
-        await prisma.externalMarkAssignment.updateMany({
-            where: {
-                staffId: staffId,
-                subjectId: subjectInt,
-                status: 'PENDING'
-            },
-            data: {
-                status: 'COMPLETED'
-            }
+            // 3. Update assignment status to COMPLETED
+            await tx.externalMarkAssignment.updateMany({
+                where: {
+                    staffId: staffId,
+                    subjectId: subjectInt,
+                    status: 'PENDING'
+                },
+                data: {
+                    status: 'COMPLETED'
+                }
+            });
         });
 
         res.json({ message: "Marks submitted successfully", count: submissions.length });

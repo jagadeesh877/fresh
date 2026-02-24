@@ -348,7 +348,12 @@ model SubjectDummyMapping {
   semester           Int
   section            String
   academicYear       String
-  dummyNumber        String   @unique
+  dummyNumber        String?
+  answerScriptNo     String?
+  isAbsent           Boolean  @default(false)
+  boardCode          String?
+  qpCode             String?
+  marks              Float?
   mappingLocked      Boolean  @default(false)
   createdAt          DateTime @default(now())
 

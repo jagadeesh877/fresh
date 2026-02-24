@@ -939,7 +939,17 @@ const createSubject = async (req, res) => {
 
 const getSubjects = async (req, res) => {
     try {
+        const { department, semester } = req.query;
+        const where = {};
+        if (department) {
+            where.department = department;
+        }
+        if (semester) {
+            where.semester = parseInt(semester);
+        }
+
         const subjects = await prisma.subject.findMany({
+            where,
             include: {
                 facultyAssignments: true
             }
