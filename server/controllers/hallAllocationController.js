@@ -281,7 +281,7 @@ exports.generateAllocations = async (req, res) => {
         for (const sub of subjects) {
             // Check if sub.department matches a code or name in our official list
             const deptMatch = allDepts.find(d => d.code === sub.department || d.name === sub.department);
-            const searchDept = deptMatch ? deptMatch.name : sub.department;
+            const searchDept = deptMatch ? (deptMatch.code || deptMatch.name) : sub.department;
 
             console.log(`[DEBUG] Fetching students for ${sub.code} | Sem: ${sub.semester} | Dept Search: ${searchDept}`);
 
@@ -592,14 +592,14 @@ exports.exportConsolidatedPlan = async (req, res) => {
         };
 
         const drawTableHeader = (y) => {
-            doc.rect(colX.sno, y, colX.end - colX.sno, 25).fill('#f0f0f0').stroke('#000000');
-            doc.fill('#000000').font('Helvetica-Bold').fontSize(8);
+            doc.rect(colX.sno, y, colX.end - colX.sno, 30).fill('#f0f0f0').stroke('#000000');
+            doc.fill('#000000').font('Helvetica-Bold').fontSize(10);
 
             Object.values(colX).forEach(x => {
-                if (x !== colX.end) doc.moveTo(x, y).lineTo(x, y + 25).stroke();
+                if (x !== colX.end) doc.moveTo(x, y).lineTo(x, y + 30).stroke();
             });
 
-            const textY = y + 8;
+            const textY = y + 10;
             doc.text('S.\nNo.', colX.sno, y + 4, { width: colW.sno, align: 'center' });
             doc.text('Sem', colX.sem, textY, { width: colW.sem, align: 'center' });
             doc.text('Dept.', colX.dept, textY, { width: colW.dept, align: 'center' });
@@ -607,7 +607,7 @@ exports.exportConsolidatedPlan = async (req, res) => {
             doc.text('Register Number', colX.reg, textY, { width: colW.reg, align: 'center' });
             doc.text('Strength', colX.str, textY, { width: colW.str, align: 'center' });
             doc.text('Total\nStrength', colX.total, y + 4, { width: colW.total, align: 'center' });
-            return y + 25;
+            return y + 30;
         };
 
         doc.lineWidth(0.5);
@@ -620,8 +620,8 @@ exports.exportConsolidatedPlan = async (req, res) => {
             depts.forEach(d => {
                 const ranges = getRegisterRanges(d.students);
                 d.rangesText = ranges;
-                const textHeight = doc.font('Helvetica').fontSize(8).heightOfString(ranges, { width: colW.reg - 8 });
-                d.rowHeight = Math.max(20, textHeight + 8);
+                const textHeight = doc.font('Helvetica').fontSize(10).heightOfString(ranges, { width: colW.reg - 8 });
+                d.rowHeight = Math.max(25, textHeight + 12);
             });
 
             const hallHeight = depts.reduce((sum, d) => sum + d.rowHeight, 0);
@@ -637,7 +637,7 @@ exports.exportConsolidatedPlan = async (req, res) => {
             let rowY = currentY;
 
             depts.forEach((d) => {
-                doc.font('Helvetica').fontSize(8);
+                doc.font('Helvetica').fontSize(10);
 
                 doc.rect(colX.sem, rowY, colW.sem, d.rowHeight).stroke();
                 const semText = getRomanNumeral(d.sem);
@@ -657,13 +657,13 @@ exports.exportConsolidatedPlan = async (req, res) => {
             });
 
             doc.rect(colX.sno, hallStartY, colW.sno, hallHeight).stroke();
-            doc.font('Helvetica').text(sNo.toString(), colX.sno, hallStartY + (hallHeight / 2) - 4, { width: colW.sno, align: 'center' });
+            doc.font('Helvetica').fontSize(10).text(sNo.toString(), colX.sno, hallStartY + (hallHeight / 2) - 4, { width: colW.sno, align: 'center' });
 
             doc.rect(colX.hall, hallStartY, colW.hall, hallHeight).stroke();
-            doc.text(hall.name, colX.hall, hallStartY + (hallHeight / 2) - 4, { width: colW.hall, align: 'center' });
+            doc.fontSize(10).text(hall.name, colX.hall, hallStartY + (hallHeight / 2) - 4, { width: colW.hall, align: 'center' });
 
             doc.rect(colX.total, hallStartY, colW.total, hallHeight).stroke();
-            doc.text(hall.totalStrength.toString(), colX.total, hallStartY + (hallHeight / 2) - 4, { width: colW.total, align: 'center' });
+            doc.fontSize(10).text(hall.totalStrength.toString(), colX.total, hallStartY + (hallHeight / 2) - 4, { width: colW.total, align: 'center' });
 
             currentY += hallHeight;
             sNo++;
@@ -701,7 +701,7 @@ exports.exportSeatingGrid = async (req, res) => {
             orderBy: [{ hall: { hallName: 'asc' } }, { columnLabel: 'asc' }, { benchIndex: 'asc' }]
         });
 
-        const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+        const doc = new PDFDocument({ margins: { top: 30, bottom: 15, left: 30, right: 30 }, size: 'A4', layout: 'landscape' });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Seating_Grid_${session.examName.replace(/\s+/g, '_')}.pdf`);
         doc.pipe(res);
@@ -720,17 +720,17 @@ exports.exportSeatingGrid = async (req, res) => {
             const logoPath = require('path').join(process.cwd(), '..', 'client', 'public', 'miet-logo.png');
             try { doc.image(logoPath, 40, 30, { width: 70 }); } catch (e) { }
 
-            doc.fontSize(16).font('Helvetica-Bold').text('M.I.E.T. ENGINEERING COLLEGE', 120, 35, { align: 'center', width: availableWidth - 80 });
-            doc.fontSize(10).font('Helvetica').text('(AUTONOMOUS)', 120, 52, { align: 'center', width: availableWidth - 80 });
-            doc.fontSize(9).font('Helvetica').text('(AFFILIATED TO ANNA UNIVERSITY, CHENNAI)', 120, 64, { align: 'center', width: availableWidth - 80 });
-            doc.fontSize(9).font('Helvetica').text('TIRUCHIRAPPALLI', 120, 75, { align: 'center', width: availableWidth - 80 });
-            doc.fontSize(10).font('Helvetica-Bold').text('OFFICE OF THE CONTROLLER OF EXAMINATIONS', 120, 90, { align: 'center', width: availableWidth - 80 });
+            doc.fontSize(22).font('Helvetica-Bold').text('M.I.E.T. ENGINEERING COLLEGE', 120, 35, { align: 'center', width: availableWidth - 80 });
+            doc.fontSize(10).font('Helvetica').text('(AUTONOMOUS)', 120, 60, { align: 'center', width: availableWidth - 80 });
+            doc.fontSize(9).font('Helvetica').text('(AFFILIATED TO ANNA UNIVERSITY, CHENNAI)', 120, 72, { align: 'center', width: availableWidth - 80 });
+            doc.fontSize(9).font('Helvetica').text('TIRUCHIRAPPALLI', 120, 83, { align: 'center', width: availableWidth - 80 });
+            doc.fontSize(12).font('Helvetica-Bold').text('OFFICE OF THE CONTROLLER OF EXAMINATIONS', 120, 98, { align: 'center', width: availableWidth - 80 });
 
-            doc.rect(40, 30, availableWidth, 80).stroke();
+            doc.rect(40, 30, availableWidth, 85).stroke();
 
-            doc.rect(40, 115, availableWidth, 20).stroke();
-            doc.fontSize(10).font('Helvetica-Bold').text(session.examName.toUpperCase(), 50, 120);
-            doc.fontSize(10).font('Helvetica-Bold').text(`HALL NO - ${hall.hallName}`, availableWidth - 100, 120, { width: 130, align: 'right' });
+            doc.rect(40, 120, availableWidth, 25).stroke();
+            doc.fontSize(14).font('Helvetica-Bold').text(session.examName.toUpperCase(), 50, 126);
+            doc.fontSize(14).font('Helvetica-Bold').text(`HALL NO - ${hall.hallName}`, availableWidth - 100, 126, { width: 130, align: 'right' });
 
             const colLabels = hall.columns.map(c => c.label);
             const maxBenches = Math.max(...hall.columns.map(c => c.benches));
@@ -741,19 +741,19 @@ exports.exportSeatingGrid = async (req, res) => {
             const seatW = blockW < 100 ? 20 : 25; // Responsive to col count
             const stuW = (blockW - seatW) / 2;
 
-            const headerY1 = 145;
+            const headerY1 = 150;
             const headerY2 = headerY1 + 15;
-            const headerCellH = 35; // Taller headers
-            const seatCellH = 30; // Taller seat cells
+            const headerCellH = 45; // Taller headers to fit larger font
+            const seatCellH = 45; // Taller seat cells
 
             colLabels.forEach((label, i) => {
                 doc.rect(currentX, headerY1, seatW, 15).stroke();
                 if (i === 0) {
-                    doc.fontSize(7).font('Helvetica-Bold').text('Stage', currentX, headerY1 + 4, { width: seatW, align: 'center' });
+                    doc.fontSize(8).font('Helvetica-Bold').text('Stage', currentX, headerY1 + 3, { width: seatW, align: 'center' });
                 }
 
                 doc.rect(currentX + seatW, headerY1, stuW * 2, 15).stroke();
-                doc.fontSize(9).font('Helvetica-Bold').text(label, currentX + seatW, headerY1 + 3, { width: stuW * 2, align: 'center' });
+                doc.fontSize(11).font('Helvetica-Bold').text(label, currentX + seatW, headerY1 + 2, { width: stuW * 2, align: 'center' });
 
                 const benchAllocations = hallAllocations.filter(a => a.columnLabel === label);
                 const leftStus = benchAllocations.filter(a => a.seatNumber.endsWith('A') || a.seatNumber === a.columnLabel + a.benchIndex);
@@ -773,13 +773,13 @@ exports.exportSeatingGrid = async (req, res) => {
                 if (session.examMode === 'CIA') {
                     doc.rect(currentX + seatW, headerY2, stuW, headerCellH).stroke();
                     doc.rect(currentX + seatW + stuW, headerY2, stuW, headerCellH).stroke();
-                    const leftH = doc.fontSize(6).font('Helvetica-Bold').heightOfString(leftStr, { width: stuW - 2 });
-                    const rightH = doc.fontSize(6).font('Helvetica-Bold').heightOfString(rightStr, { width: stuW - 2 });
+                    const leftH = doc.fontSize(7).font('Helvetica-Bold').heightOfString(leftStr, { width: stuW - 2 });
+                    const rightH = doc.fontSize(7).font('Helvetica-Bold').heightOfString(rightStr, { width: stuW - 2 });
                     doc.text(leftStr, currentX + seatW + 1, headerY2 + (headerCellH / 2) - (leftH / 2), { width: stuW - 2, align: 'center', lineGap: 1 });
                     doc.text(rightStr, currentX + seatW + stuW + 1, headerY2 + (headerCellH / 2) - (rightH / 2), { width: stuW - 2, align: 'center', lineGap: 1 });
                 } else {
                     doc.rect(currentX + seatW, headerY2, stuW * 2, headerCellH).stroke();
-                    const leftH = doc.fontSize(6).font('Helvetica-Bold').heightOfString(leftStr, { width: stuW * 2 - 2 });
+                    const leftH = doc.fontSize(9).font('Helvetica-Bold').heightOfString(leftStr, { width: stuW * 2 - 2 });
                     doc.text(leftStr, currentX + seatW + 1, headerY2 + (headerCellH / 2) - (leftH / 2), { width: stuW * 2 - 2, align: 'center', lineGap: 1 });
                 }
 
@@ -793,7 +793,7 @@ exports.exportSeatingGrid = async (req, res) => {
                 currentX = startX;
                 colLabels.forEach((label) => {
                     doc.rect(currentX, currentY, seatW, seatCellH).stroke();
-                    doc.fontSize(7).font('Helvetica-Bold').text(`${label}${b}`, currentX, currentY + (seatCellH / 2) - 4, { width: seatW, align: 'center' });
+                    doc.fontSize(9).font('Helvetica-Bold').text(`${label}${b}`, currentX, currentY + (seatCellH / 2) - 5, { width: seatW, align: 'center' });
 
                     const benchStus = hallAllocations.filter(a => a.columnLabel === label && a.benchIndex === b);
                     const leftStu = benchStus.find(a => a.seatNumber.endsWith('A') || a.seatNumber === label + b);
@@ -805,13 +805,13 @@ exports.exportSeatingGrid = async (req, res) => {
 
                         if (leftStu) {
                             const leftText = leftStu.student.registerNumber || leftStu.student.rollNo;
-                            const textFontSize = leftText && leftText.length > 8 ? 7 : 8; // Increased font size
+                            const textFontSize = leftText && leftText.length > 8 ? 9 : 10; // Increased font size
                             const textH = doc.fontSize(textFontSize).font('Helvetica').heightOfString(leftText, { width: stuW, lineBreak: false });
                             doc.text(leftText, currentX + seatW, currentY + (seatCellH / 2) - (textH / 2), { width: stuW, align: 'center', lineBreak: false });
                         }
                         if (rightStu) {
                             const rightText = rightStu.student.registerNumber || rightStu.student.rollNo;
-                            const textFontSize = rightText && rightText.length > 8 ? 7 : 8; // Increased font size
+                            const textFontSize = rightText && rightText.length > 8 ? 9 : 10; // Increased font size
                             const textH = doc.fontSize(textFontSize).font('Helvetica').heightOfString(rightText, { width: stuW, lineBreak: false });
                             doc.text(rightText, currentX + seatW + stuW, currentY + (seatCellH / 2) - (textH / 2), { width: stuW, align: 'center', lineBreak: false });
                         }
@@ -819,8 +819,8 @@ exports.exportSeatingGrid = async (req, res) => {
                         doc.rect(currentX + seatW, currentY, stuW * 2, seatCellH).stroke();
                         if (leftStu) {
                             const leftText = leftStu.student.registerNumber || leftStu.student.rollNo;
-                            const textFontSize = leftText && leftText.length > 8 ? 7 : 8; // Increased font size
-                            const textH = doc.fontSize(textFontSize).font('Helvetica').heightOfString(leftText, { width: stuW * 2, lineBreak: false });
+                            const textFontSize = leftText && leftText.length > 8 ? 13 : 15; // Much larger font size for End Sem
+                            const textH = doc.fontSize(textFontSize).font('Helvetica-Bold').heightOfString(leftText, { width: stuW * 2, lineBreak: false });
                             doc.text(leftText, currentX + seatW, currentY + (seatCellH / 2) - (textH / 2), { width: stuW * 2, align: 'center', lineBreak: false });
                         }
                     }
@@ -830,8 +830,8 @@ exports.exportSeatingGrid = async (req, res) => {
                 currentY += seatCellH;
             }
 
-            const summaryY = currentY + 20;
-            if (summaryY < 550) {
+            const summaryY = currentY + 15;
+            if (summaryY < 570) {
                 const deptStats = {};
                 hallAllocations.forEach(a => {
                     let dept = deptMap[a.department] || a.department;
@@ -842,24 +842,24 @@ exports.exportSeatingGrid = async (req, res) => {
 
                 const keys = Object.keys(deptStats);
                 let statX = startX;
-                const statW = 60;
-                const statH = Object.keys(deptStats).some(k => k.length > 10) ? 25 : 15;
+                const statW = 75; // wider summary box
+                const statH = Object.keys(deptStats).some(k => k.length > 10) ? 30 : 20;
 
                 keys.forEach(k => {
                     doc.rect(statX, summaryY, statW, statH).stroke();
-                    const th = doc.fontSize(6).font('Helvetica-Bold').heightOfString(k, { width: statW - 4 });
+                    const th = doc.fontSize(9).font('Helvetica-Bold').heightOfString(k, { width: statW - 4 });
                     doc.text(k, statX + 2, summaryY + (statH / 2) - (th / 2), { width: statW - 4, align: 'center' });
-                    doc.rect(statX, summaryY + statH, statW, 15).stroke();
-                    doc.fontSize(8).font('Helvetica').text(deptStats[k].toString(), statX, summaryY + statH + 4, { width: statW, align: 'center' });
+                    doc.rect(statX, summaryY + statH, statW, 20).stroke();
+                    doc.fontSize(11).font('Helvetica').text(deptStats[k].toString(), statX, summaryY + statH + 5, { width: statW, align: 'center' });
                     statX += statW;
                 });
 
                 doc.rect(statX, summaryY, statW, statH).stroke();
-                doc.fontSize(7).font('Helvetica-Bold').text('TOTAL', statX, summaryY + (statH / 2) - 4, { width: statW, align: 'center' });
-                doc.rect(statX, summaryY + statH, statW, 15).stroke();
-                doc.fontSize(8).font('Helvetica-Bold').text(hallAllocations.length.toString(), statX, summaryY + statH + 4, { width: statW, align: 'center' });
+                doc.fontSize(9).font('Helvetica-Bold').text('TOTAL', statX, summaryY + (statH / 2) - 4, { width: statW, align: 'center' });
+                doc.rect(statX, summaryY + statH, statW, 20).stroke();
+                doc.fontSize(11).font('Helvetica-Bold').text(hallAllocations.length.toString(), statX, summaryY + statH + 5, { width: statW, align: 'center' });
 
-                doc.fontSize(10).font('Helvetica-Bold').text('CONTROLLER OF EXAMINATIONS', startX, summaryY + statH + 40, { width: availableWidth, align: 'right' });
+                doc.fontSize(12).font('Helvetica-Bold').text('CONTROLLER OF EXAMINATIONS', startX, summaryY + statH + 20, { width: availableWidth, align: 'right' });
             }
         });
 
