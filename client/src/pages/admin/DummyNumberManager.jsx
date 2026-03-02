@@ -39,6 +39,12 @@ const DummyNumberManager = () => {
     fetchDepts();
   }, []);
 
+  useEffect(() => {
+    if (filters.subjectId) {
+      fetchMappings();
+    }
+  }, [filters.subjectId]);
+
   const fetchSubjects = async (sem) => {
     if (!sem) return;
     try {

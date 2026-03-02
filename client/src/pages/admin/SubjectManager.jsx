@@ -11,6 +11,7 @@ const SubjectManager = () => {
   const [newSubject, setNewSubject] = useState({
     code: "",
     name: "",
+    shortName: "",
     departments: [],
     semester: "",
     type: "DEPARTMENT",
@@ -94,6 +95,7 @@ const SubjectManager = () => {
       setNewSubject({
         code: "",
         name: "",
+        shortName: "",
         departments: [],
         semester: "",
         type: "DEPARTMENT",
@@ -431,6 +433,20 @@ const SubjectManager = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 px-1">
+                  Short Name (For Timetable)
+                </label>
+                <input
+                  className="w-full px-6 py-5 bg-gray-50 border-2 border-transparent focus:border-[#003B73] rounded-3xl font-bold text-gray-800 outline-none transition-all uppercase"
+                  placeholder="e.g. DS"
+                  value={newSubject.shortName}
+                  onChange={(e) =>
+                    setNewSubject({ ...newSubject, shortName: e.target.value })
+                  }
+                />
+              </div>
+
               <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100">
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-4 px-1">
                   Classification
@@ -603,31 +619,30 @@ const SubjectManager = () => {
                 </CustomSelect>
               </div>
 
-              {selectedSubjectId &&
-                subjectList
-                  .find((s) => s.id === selectedSubjectId)
-                  ?.department?.includes(",") && (
-                  <div className="p-6 bg-blue-50/50 rounded-[32px] border border-blue-100">
-                    <label className="block text-xs font-black text-blue-400 uppercase tracking-widest mb-4 px-1">
-                      Target Department
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      {subjectList
-                        .find((s) => s.id === selectedSubjectId)
-                        .department.split(",")
-                        .map((d) => (
+              {selectedSubjectId && (
+                <div className="p-6 bg-blue-50/50 rounded-[32px] border border-blue-100">
+                  <label className="block text-xs font-black text-blue-400 uppercase tracking-widest mb-4 px-1">
+                    Target Department
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {(Array.isArray(departments) ? departments : [])
+                      .filter((d) => d.name !== "First Year (General)")
+                      .map((d) => {
+                        const deptCode = d.code || d.name;
+                        return (
                           <button
-                            key={d}
+                            key={d.id}
                             type="button"
-                            onClick={() => setAssignDept(d)}
-                            className={`px-6 py-3 rounded-2xl font-black text-xs uppercase transition-all ${assignDept === d ? "bg-[#003B73] text-white shadow-lg scale-105" : "bg-white text-gray-400 border border-gray-100 hover:border-[#003B73]/30"}`}
+                            onClick={() => setAssignDept(deptCode)}
+                            className={`px-6 py-3 rounded-2xl font-black text-xs uppercase transition-all ${assignDept === deptCode ? "bg-[#003B73] text-white shadow-lg scale-105" : "bg-white text-gray-400 border border-gray-100 hover:border-[#003B73]/30"}`}
                           >
-                            {d}
+                            {deptCode}
                           </button>
-                        ))}
-                    </div>
+                        )
+                      })}
                   </div>
-                )}
+                </div>
+              )}
 
               <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100">
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-4 px-1">

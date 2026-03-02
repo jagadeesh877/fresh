@@ -411,7 +411,7 @@ const getMyTimetable = async (req, res) => {
     try {
         const facultyId = parseInt(req.user.id);
         const { date } = req.query;
-        let timetable = await prisma.timetable.findMany({ where: { facultyId } });
+        let timetable = await prisma.timetable.findMany({ where: { facultyId }, include: { subject: true } });
 
         if (date) {
             const dateObj = new Date(date);
@@ -426,7 +426,9 @@ const getMyTimetable = async (req, res) => {
             });
 
             timetable = timetable.map(t => {
+                // We show all days, but only apply "isCovered" flags to the day that matches `selectedDate`.
                 if (t.day !== dayOfWeek) return t;
+
                 const specificAbsence = myAbsences.find(a => a.period === t.period);
                 const sub = mySubstitutedSlots.find(s => s.timetableId === t.id);
                 if (isFullDayAbsent || specificAbsence) {
@@ -437,14 +439,14 @@ const getMyTimetable = async (req, res) => {
 
             const substitutions = await prisma.substitution.findMany({
                 where: { substituteFacultyId: facultyId, date },
-                include: { timetable: true }
+                include: { timetable: { include: { subject: true } } }
             });
 
             if (substitutions.length > 0) {
                 const subEntries = substitutions.map(sub => ({
                     id: `sub-${sub.id}`,
                     ...sub.timetable,
-                    day: dayOfWeek,
+                    day: dayOfWeek, // Bind the substitute entry to the dayOfWeek of the Selected Date
                     isSubstitute: true,
                     originalFaculty: sub.timetable.facultyName
                 }));

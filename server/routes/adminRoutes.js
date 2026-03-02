@@ -68,6 +68,7 @@ router.delete('/assign-faculty/:id', removeFacultyAssignment);
 router.get('/faculty-absences', getAbsences);
 router.post('/faculty-absences', markFacultyAbsent);
 router.options('/faculty-absences', (req, res) => res.sendStatus(200)); // Explicit OPTIONS handling
+router.delete('/faculty-absences', removeFacultyAbsence); // Support query-based & cleanup deletion
 router.delete('/faculty-absences/:id', removeFacultyAbsence);
 
 router.get('/substitutions', getSubstitutions);

@@ -162,17 +162,16 @@ const bulkUploadStudents = async (req, res) => {
         let errors = [];
 
         for (const s of students) {
-            const { rollNo, registerNumber, name, department, year, section, semester, regulation, batch } = s;
+            let { rollNo, registerNumber, name, department, year, section, semester, regulation, batch } = s;
 
             if (!rollNo) {
                 errors.push({ rollNo: 'MISSING', error: 'Roll Number is mandatory' });
                 continue;
             }
 
-            if (!/^[A-Z][0-9]+$/i.test(rollNo)) {
-                errors.push({ rollNo, error: 'Invalid Roll Number format' });
-                continue;
-            }
+            // Removed strict regex validation that was blocking roll numbers like 'E1225001'
+            // Ensure no spaces are accidentally included
+            rollNo = String(rollNo).trim();
 
             try {
                 const existing = await prisma.student.findUnique({ where: { rollNo } });

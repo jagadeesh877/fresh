@@ -116,10 +116,14 @@ const StudentManager = () => {
           );
         }
 
+        const isCSAlias = (matchingDept?.name === 'Computer Science' || matchingDept?.code === 'CSE') &&
+          (s.department === 'Computer Science and Engineering' || s.department === 'CSE' || s.department === 'Computer Science');
+
         return (
           yearMatch &&
           sectionMatch &&
-          s.department === deptCodeToMatch &&
+          (s.department === deptCodeToMatch || s.department === matchingDept?.name || isCSAlias ||
+            (matchingDept && s.department?.toLowerCase().includes(matchingDept.code?.toLowerCase()))) &&
           s.year > 1
         );
       });
@@ -224,23 +228,35 @@ const StudentManager = () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Students");
 
+    worksheet.mergeCells("A2:D2");
+    const titleCell = worksheet.getCell("A2");
+    titleCell.value = "IV YEAR 2022 2026 BATCH CSE A SEC";
+    titleCell.font = { bold: true, size: 14 };
+    titleCell.alignment = { horizontal: "center" };
+
+    worksheet.getRow(3).values = ["S.No", "Roll No", "Register No", "Student Name"];
+    worksheet.getRow(3).font = { bold: true };
+    worksheet.getRow(3).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B0F0" } };
+
     worksheet.columns = [
-      { header: "S.No", key: "sno", width: 8 },
-      { header: "Student Name", key: "name", width: 25 },
-      { header: "Roll Number", key: "rollNo", width: 15 },
-      { header: "Registration Number", key: "registerNumber", width: 20 },
-      { header: "Regulation", key: "regulation", width: 15 },
-      { header: "Batch", key: "batch", width: 15 },
+      { key: "sno", width: 8 },
+      { key: "rollNo", width: 15 },
+      { key: "registerNumber", width: 20 },
+      { key: "name", width: 30 },
     ];
 
-    // Sample Row
     worksheet.addRow({
       sno: 1,
-      name: "Sample Student 1",
-      rollNo: "E21CS001",
-      registerNumber: "812423103001",
-      regulation: "2021",
-      batch: "2021-2025",
+      rollNo: "E1225001",
+      registerNumber: "812422104001",
+      name: "ABHILASH S",
+    });
+
+    worksheet.addRow({
+      sno: 2,
+      rollNo: "E1225002",
+      registerNumber: "812422104002",
+      name: "ABINAYA K",
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -289,61 +305,64 @@ const StudentManager = () => {
         EEE: "Electrical and Electronics Engineering",
       };
 
+      let headerKeys = { name: -1, rollNo: -1, registerNumber: -1 };
+      let headersFound = false;
+
       worksheet.eachRow((row, rowNumber) => {
-        // row.values is 1-indexed in ExcelJS
-        const values = row.values;
-        const colA = (row.getCell(1).text || "").trim();
-        const colB = (row.getCell(2).text || "").trim();
-        const colC = (row.getCell(3).text || "").trim();
-        const colD = (row.getCell(4).text || "").trim();
-        const colE = (row.getCell(5).text || "").trim();
-        const colF = (row.getCell(6).text || "").trim();
+        if (!headersFound) {
+          let tempMap = { name: -1, rollNo: -1, registerNumber: -1 };
+          row.eachCell((cell, colNumber) => {
+            const text = String(cell.text || "").toLowerCase().replace(/[^a-z]/g, '');
+            if (text.includes("name") || text.includes("student")) tempMap.name = colNumber;
+            else if (text.includes("roll")) tempMap.rollNo = colNumber;
+            else if (text.includes("reg") && !text.includes("regulation")) tempMap.registerNumber = colNumber;
+          });
 
-        console.log(
-          `[BulkDebug] Row ${rowNumber} RAW:`,
-          JSON.stringify(values),
-        );
-        console.log(
-          `[BulkDebug] Parsed: A="${colA}", B="${colB}", C="${colC}"`,
-        );
-
-        if (!colB && !colC) return;
-
-        // Dept Header: No S.No, No Roll, has long Name string
-        if (!colA && !colC && colB.length > 5 && isNaN(colB)) {
-          console.log(`[BulkDebug] Found Dept Header: ${colB}`);
-          const upperB = colB.toUpperCase();
-          let found = false;
-          for (const key in deptMap) {
-            if (upperB.includes(key)) {
-              currentDept = deptMap[key];
-              found = true;
-              break;
-            }
+          if (tempMap.name !== -1 && (tempMap.rollNo !== -1 || tempMap.registerNumber !== -1)) {
+            headersFound = true;
+            headerKeys = tempMap;
+            console.log(`[BulkDebug] Headers detected at row ${rowNumber}:`, headerKeys);
+            return;
           }
-          if (!found) currentDept = colB;
+
+          // Check for department header if headers not yet found
+          let possibleDeptStr = "";
+          row.eachCell((cell) => {
+            if (String(cell.text).length > 5 && isNaN(String(cell.text))) possibleDeptStr += " " + String(cell.text);
+          });
+          // Note: Ignoring Excel's dynamic department string as requested by the user.
+          // We will strictly rely on `bulkConfig.department` or `selectedDept`.
           return;
         }
 
-        // Student detection: EITHER colA is a number OR colC is an alphanumeric string
-        const looksLikeSNo = colA && !isNaN(parseInt(colA));
-        const looksLikeRoll =
-          colC && colC.length >= 4 && /^[A-Z0-9]+$/i.test(colC);
+        // Extract data
+        const nameVal = headerKeys.name !== -1 ? String(row.getCell(headerKeys.name).text || "").trim() : "";
+        const rollVal = headerKeys.rollNo !== -1 ? String(row.getCell(headerKeys.rollNo).text || "").trim() : "";
+        const regVal = headerKeys.registerNumber !== -1 ? String(row.getCell(headerKeys.registerNumber).text || "").trim() : "";
 
-        if (looksLikeSNo || looksLikeRoll) {
-          if (!colB) return; // Still need a name
+        if (!nameVal && !rollVal && !regVal) return;
+        if (nameVal.toLowerCase().includes("name") && (rollVal.toLowerCase().includes("roll") || regVal.toLowerCase().includes("reg"))) return;
 
-          console.log(`[BulkDebug] Adding Student: ${colB} (${colC})`);
+        // Accept if we have a name, and at least a roll or register number
+        if (nameVal && (rollVal || regVal)) {
+          const finalRoll = rollVal || regVal || `TEMP-${rowNumber}`;
+
+          // Strict UI Selection Logic for Department
+          let strictDept = bulkConfig.department;
+          if (!strictDept || strictDept === "Auto-Detect") {
+            strictDept = selectedDept;
+          }
+
           students.push({
-            rollNo: colC || `TEMP-${rowNumber}`, // Fallback if no roll in file
-            registerNumber: colD || null,
-            name: colB,
-            department: currentDept || bulkConfig.department || selectedDept,
+            rollNo: finalRoll,
+            registerNumber: regVal || null,
+            name: nameVal,
+            department: strictDept,
             year: parseInt(bulkConfig.year),
             section: bulkConfig.section,
             semester: parseInt(bulkConfig.semester),
-            regulation: colE || bulkConfig.regulation || "2021",
-            batch: colF || bulkConfig.batch || "",
+            regulation: bulkConfig.regulation || "2021",
+            batch: bulkConfig.batch || "",
           });
         }
       });
@@ -440,7 +459,9 @@ const StudentManager = () => {
                   onClick={() => resetSelection(1)}
                   className={`px-4 py-2 rounded-xl transition-all font-black uppercase tracking-widest text-[10px] whitespace-nowrap ${!selectedYear ? "bg-indigo-600 text-white shadow-lg" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
                 >
-                  {selectedDept}
+                  {selectedDept === "First Year (General)"
+                    ? (departments.find(d => d.name === "First Year (General)")?.code || "GEN")
+                    : selectedDept}
                 </button>
               </>
             )}
@@ -488,7 +509,7 @@ const StudentManager = () => {
                 <Users className="w-8 h-8 text-purple-600 group-hover:text-white" />
               </div>
               <h3 className="text-2xl font-black text-purple-900 group-hover:text-white transition-colors">
-                GEN
+                {departments.find((d) => d.name === "First Year (General)")?.code || "GEN"}
               </h3>
               <p className="text-xs font-black text-purple-400 group-hover:text-purple-100 mt-2 uppercase tracking-widest">
                 Unassigned Pool
@@ -496,7 +517,7 @@ const StudentManager = () => {
             </div>
 
             {(Array.isArray(departments) ? departments : [])
-              .filter((d) => d && d.name !== "First Year (General)")
+              .filter((d) => d && d.name !== "First Year (General)" && d.code !== (departments.find(dy => dy.name === "First Year (General)")?.code || "GEN"))
               .map((dept) => (
                 <div
                   key={dept.id}
@@ -772,7 +793,7 @@ const StudentManager = () => {
                         : "Select Dept"}
                     </option>
                     {departments
-                      .filter((d) => d.name !== "First Year (General)")
+                      .filter((d) => d && d.name !== "First Year (General)" && d.code !== (departments.find(dy => dy.name === "First Year (General)")?.code || "GEN"))
                       .map((d) => (
                         <option key={d.id} value={d.code || d.name}>
                           {d.code || d.name}
@@ -1016,7 +1037,7 @@ const StudentManager = () => {
                         : "Select Dept"}
                     </option>
                     {departments
-                      .filter((d) => d.name !== "First Year (General)")
+                      .filter((d) => d && d.name !== "First Year (General)" && d.code !== (departments.find(dy => dy.name === "First Year (General)")?.code || "GEN"))
                       .map((d) => (
                         <option key={d.id} value={d.code || d.name}>
                           {d.code || d.name}

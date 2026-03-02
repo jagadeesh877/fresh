@@ -97,7 +97,7 @@ const FacultyTimetable = () => {
         <div
           className={`font-bold text-sm ${isSubstitute ? "text-orange-900" : isCovered ? "text-gray-500 line-through" : "text-gray-800"}`}
         >
-          {entry.subjectName}
+          {entry.subject?.shortName || entry.subjectName}
         </div>
         <div className="text-xs text-[#003B73] font-medium mt-1">
           {entry.department} {entry.year}-{entry.section}

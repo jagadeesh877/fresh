@@ -61,23 +61,10 @@ exports.generateMapping = async (req, res) => {
             return res.status(400).json({ message: "Mapping is locked and cannot be regenerated" });
         }
 
-        // 4. Generate mappings
+        // 4. Process mappings inside a transaction
         let currentDummy = parseInt(startingDummy);
-        const results = [];
-
-        // Fetch students who already have mappings for this subject to skip them
-        const existingMappings = await prisma.subjectDummyMapping.findMany({
-            where: { subjectId: parseInt(subjectId) },
-            select: { studentId: true }
-        });
-        const mappedStudentIds = new Set(existingMappings.map(m => m.studentId));
-
-        // We will process this inside a transaction to ensure clean state
         await prisma.$transaction(async (tx) => {
             for (const student of students) {
-                // Skip if already has a mapping
-                if (mappedStudentIds.has(student.id)) continue;
-
                 const isAbsent = absentStudentIds.includes(student.id);
                 let dummyNumber = null;
 
@@ -86,13 +73,28 @@ exports.generateMapping = async (req, res) => {
                     currentDummy++;
                 }
 
-                const mapping = await tx.subjectDummyMapping.create({
-                    data: {
+                await tx.subjectDummyMapping.upsert({
+                    where: {
+                        studentId_subjectId: {
+                            studentId: student.id,
+                            subjectId: subject.id
+                        }
+                    },
+                    update: {
+                        dummyNumber,
+                        isAbsent,
+                        boardCode: boardCode || null,
+                        qpCode: qpCode || null,
+                        department: student.department || department,
+                        semester: parseInt(semester),
+                        section: student.section || 'A'
+                    },
+                    create: {
                         studentId: student.id,
                         originalRegisterNo: student.registerNumber || student.rollNo,
                         subjectId: subject.id,
                         subjectCode: subject.code,
-                        department: student.department || department, // Fallback to passed department if student has none (e.g. general)
+                        department: student.department || department,
                         semester: parseInt(semester),
                         section: student.section || 'A',
                         academicYear: process.env.ACADEMIC_YEAR || "2023-24",
@@ -102,11 +104,10 @@ exports.generateMapping = async (req, res) => {
                         qpCode: qpCode || null
                     }
                 });
-                results.push(mapping);
             }
         });
 
-        res.json({ message: "Dummy numbers generated successfully", count: results.length });
+        res.json({ message: "Dummy numbers processed successfully" });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

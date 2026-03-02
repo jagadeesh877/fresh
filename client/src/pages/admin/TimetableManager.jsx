@@ -243,9 +243,11 @@ const TimetableManager = () => {
 
     let fId = null;
     let sId = null;
+    let localShortName = null;
     const subj = subjects?.find((s) => s.name === selectedSubject);
     if (subj) {
       sId = subj.id;
+      localShortName = subj.shortName;
       const assignment = subj.assignments?.find((a) => a.section === section);
       if (assignment) fId = assignment.facultyId;
     }
@@ -258,6 +260,7 @@ const TimetableManager = () => {
         duration: selectedDuration,
         subjectId: sId,
         subjectName: selectedSubject,
+        subject: { shortName: localShortName },
         facultyName: selectedFaculty,
         facultyId: fId,
         room: selectedRoom,
@@ -501,7 +504,7 @@ const TimetableManager = () => {
                     <div className="space-y-4">
                       <div className="relative group">
                         <CustomSelect
-                          className="w-full px-6 py-5 bg-white border-2 border-transparent focus:border-amber-500 rounded-3xl font-black text-amber-900 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                          className="w-full z-10"
                           value={substituteId}
                           onChange={(e) => setSubstituteId(e.target.value)}
                         >
@@ -907,7 +910,7 @@ const TimetableManager = () => {
                                     <span
                                       className={`text-[12px] font-black leading-tight ${subEntry ? "text-amber-800" : isToday && isAbsent ? "text-red-800" : "text-[#003B73]"}`}
                                     >
-                                      {entry.subjectName}
+                                      {entry.subject?.shortName || entry.subjectName}
                                     </span>
                                     <span
                                       className={`text-[8px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest flex-shrink-0 ${entry.type === "LAB"
@@ -1046,7 +1049,7 @@ const TimetableManager = () => {
                     </label>
                     <div className="relative group">
                       <CustomSelect
-                        className="w-full px-6 py-5 bg-gray-50 border-2 border-transparent focus:border-[#003B73] rounded-3xl font-bold text-gray-800 outline-none transition-all appearance-none cursor-pointer"
+                        className="w-full z-10"
                         value={selectedSubject}
                         onChange={(e) => handleSubjectChange(e.target.value)}
                       >
@@ -1102,7 +1105,7 @@ const TimetableManager = () => {
                     </label>
                     <div className="relative group">
                       <CustomSelect
-                        className="w-full px-6 py-5 bg-gray-50 border-2 border-transparent focus:border-[#003B73] rounded-3xl font-bold text-gray-800 outline-none transition-all appearance-none cursor-pointer"
+                        className="w-full z-10"
                         value={selectedDuration}
                         onChange={(e) =>
                           setSelectedDuration(parseInt(e.target.value))

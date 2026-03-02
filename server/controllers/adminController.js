@@ -50,11 +50,23 @@ const deleteFaculty = async (req, res) => {
 
 const getTimetable = async (req, res) => {
     try {
-        const { department, year, semester, section } = req.query;
-        console.log(`[TT_v2.1] Fetching: ${department} Y${year} S${semester} Sec${section}`);
+        const { department, year, semester, section, facultyId, day } = req.query;
 
-        // Strict filtering: if any context is missing, return empty to prevent data leakage
+        // Mode 1: Faculty Specific Schedule (used in Faculty Manager Duty Control)
+        if (facultyId) {
+            const timetable = await prisma.timetable.findMany({
+                where: {
+                    facultyId: parseInt(facultyId),
+                    ...(day && { day: day.toUpperCase() })
+                },
+                include: { subject: true, faculty: true }
+            });
+            return res.json(timetable);
+        }
+
+        // Mode 2: Grid-based filtering (Admin Timetable Manager)
         if (!department || !year || !semester || !section) {
+            console.log(`[TT_v2.1] Skipping fetch: Missing context`);
             return res.json([]);
         }
 
@@ -153,9 +165,48 @@ const markFacultyAbsent = async (req, res) => {
 
 const removeFacultyAbsence = async (req, res) => {
     const { id } = req.params;
+    const { facultyId, date, period, cleanup } = req.query;
+
     try {
-        await prisma.facultyAbsence.delete({ where: { id: parseInt(id) } });
-        res.json({ message: 'Absence removed' });
+        if (id) {
+            await prisma.facultyAbsence.delete({ where: { id: parseInt(id) } });
+            return res.json({ message: 'Absence removed' });
+        }
+
+        if (!facultyId || !date) {
+            return res.status(400).json({ message: "Missing facultyId or date for removal" });
+        }
+
+        const fId = parseInt(facultyId);
+
+        // Optional: Substitution cleanup if needed
+        if (cleanup === 'true') {
+            // Find all timetable slots for this faculty
+            const mySlots = await prisma.timetable.findMany({
+                where: { facultyId: fId },
+                select: { id: true }
+            });
+            const slotIds = mySlots.map(s => s.id);
+
+            // Remove all substitutions for this faculty on this date
+            await prisma.substitution.deleteMany({
+                where: {
+                    date: date,
+                    timetableId: { in: slotIds }
+                }
+            });
+        }
+
+        // Delete the absence(s)
+        await prisma.facultyAbsence.deleteMany({
+            where: {
+                facultyId: fId,
+                date: date,
+                ...(period && { period: parseInt(period) })
+            }
+        });
+
+        res.json({ message: 'Absence(s) removed' });
     } catch (error) {
         handleError(res, error, "Error removing absence");
     }
