@@ -122,11 +122,14 @@ exports.updateEndSemMarks = async (req, res) => {
             const grades = await tx.gradeSettings.findMany({ where: { regulation } });
 
             let count = 0;
+            const skipped = [];
             for (const student of students) {
                 const ciaRecord = student.marks[0];
                 const dummyMapping = student.dummyMappings[0];
-                // Wait for strict match on dummy mapping OR absence.
-                if (!ciaRecord || !dummyMapping) continue;
+                if (!ciaRecord || !dummyMapping) {
+                    skipped.push({ studentId: student.id, name: student.name, reason: !ciaRecord ? 'No CIA marks' : 'No dummy mapping' });
+                    continue;
+                }
 
                 const extRecord = extMarksMap[dummyMapping.dummyNumber];
 
@@ -227,10 +230,15 @@ exports.updateEndSemMarks = async (req, res) => {
 
                 count++;
             }
-            return count;
+            return { count, skipped };
         });
 
-        res.json({ message: "Consolidated marks updated and grades calculated", count: resultCount });
+        res.json({
+            message: "Consolidated marks updated and grades calculated",
+            count: resultCount.count,
+            skippedCount: resultCount.skipped.length,
+            skipped: resultCount.skipped  // Admin can see which students were skipped
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -291,23 +299,21 @@ exports.calculateGPA = async (req, res) => {
         // 1. Process standard marks (Regular attempts in current/past semesters)
         for (const m of marks) {
             if (m.subject.semester <= parseInt(semester)) {
-                // Check if this subject became an arrear and was cleared later
                 const isClearedArrear = clearedArrears.some(ar => ar.subjectId === m.subjectId);
-
                 const credits = m.subject.credits || 3;
+
                 if (m.endSemMarks && m.endSemMarks.resultStatus === 'PASS') {
+                    // Regular pass — add points and credits
                     const gradeInfo = grades.find(g => g.grade === m.endSemMarks.grade);
                     cumulativePoints += (gradeInfo ? gradeInfo.gradePoint : 0) * credits;
                     cumulativeCredits += credits;
                 } else if (isClearedArrear) {
-                    // If it was a fail but cleared later, we'll handle its PASS grade in the Arrear block below
-                    // BUT we still count the credits here to maintain the "attempt" record (optional depending on policy)
-                    // Standard: We only count the credits ONCE in the denominator.
-                    cumulativeCredits += credits;
-                } else {
-                    // Still a fail
+                    // This subject was failed initially but cleared in an arrear attempt.
+                    // ONLY add credits to denominator here (points will be added in the arrear block).
+                    // Do NOT add again in the arrear block.
                     cumulativeCredits += credits;
                 }
+                // If it's still a fail (not cleared) — do not count credits or points
             }
         }
 
@@ -320,11 +326,10 @@ exports.calculateGPA = async (req, res) => {
             });
 
             if (attempt) {
-                const credits = ar.subject.credits || 3;
                 const gradeInfo = grades.find(g => g.grade === attempt.grade);
-                cumulativePoints += (gradeInfo ? gradeInfo.gradePoint : 0) * credits;
-                // Note: We don't increment cumulativeCredits here because the subject's base credits 
-                // were already added in the denominator during the regular marks loop above.
+                // Add ONLY the grade points. Credits were already counted in the standard marks loop above.
+                cumulativePoints += (gradeInfo ? gradeInfo.gradePoint : 0) * (ar.subject.credits || 3);
+                // NOTE: Do NOT increment cumulativeCredits here — already counted above to avoid double-counting.
             }
         }
 

@@ -163,9 +163,11 @@ const getClassStudents = async (req, res) => {
         });
 
         const data = students.map(s => {
-            const totalClasses = 40;
+            // Use actual attendance records for this student+subject as denominator
+            const allPeriods = new Set(s.attendance.map(a => `${a.date}_${a.period}`));
+            const totalClasses = allPeriods.size || s.attendance.length;
             const presentCount = s.attendance.filter(a => a.status === 'PRESENT' || a.status === 'OD').length;
-            const percentage = Math.round((presentCount / totalClasses) * 100);
+            const percentage = totalClasses > 0 ? Math.round((presentCount / totalClasses) * 100) : 0;
             const mark = s.marks[0];
 
             const isCiaAbsent = mark ? (mark.cia1_test === -1 && mark.cia1_assignment === -1 && mark.cia1_attendance === -1) &&
@@ -177,7 +179,7 @@ const getClassStudents = async (req, res) => {
                 rollNo: s.rollNo,
                 registerNumber: s.registerNumber,
                 name: s.name,
-                attendancePercentage: percentage > 100 ? 100 : percentage,
+                attendancePercentage: Math.min(percentage, 100),
                 ciaTotal: mark?.internal || 0,
                 isCiaAbsent,
                 status: percentage >= 75 ? 'Eligible' : 'Shortage'
@@ -323,68 +325,72 @@ const getFacultyDashboardStats = async (req, res) => {
         });
 
         const assignedSubjects = assignments.length;
-        let totalStudents = 0;
-        const classPerformance = [];
 
-        for (const assignment of assignments) {
+        // Batch all per-assignment queries using Promise.all
+        const assignmentStats = await Promise.all(assignments.map(async (assignment) => {
             const deptCriteria = await getDeptCriteria(assignment.department || assignment.subject.department);
-
             const students = await prisma.student.findMany({
-                where: {
-                    ...deptCriteria,
-                    semester: assignment.subject.semester,
-                    section: assignment.section
-                },
-                include: {
-                    marks: { where: { subjectId: assignment.subject.id } }
-                }
+                where: { ...deptCriteria, semester: assignment.subject.semester, section: assignment.section },
+                include: { marks: { where: { subjectId: assignment.subject.id } } }
             });
 
-            totalStudents += students.length;
             const marksData = students.map(s => s.marks[0]?.internal).filter(m => m != null);
-            const avgMarks = marksData.length > 0 ? Math.round(marksData.reduce((a, b) => a + b, 0) / marksData.length) : 0;
+            const avgMarks = marksData.length > 0
+                ? Math.round(marksData.reduce((a, b) => a + b, 0) / marksData.length)
+                : 0;
 
-            classPerformance.push({
+            const marksCount = await prisma.marks.count({
+                where: { subjectId: assignment.subject.id, internal: { not: null } }
+            });
+
+            return {
                 subject: assignment.subject.shortName || assignment.subject.name,
                 average: avgMarks,
-                students: students.length
-            });
-        }
+                studentCount: students.length,
+                marksCount
+            };
+        }));
+
+        const totalStudents = assignmentStats.reduce((sum, a) => sum + a.studentCount, 0);
+        const classPerformance = assignmentStats.map(a => ({ subject: a.subject, average: a.average, students: a.studentCount }));
+        const totalMarksEntries = assignmentStats.reduce((sum, a) => sum + a.studentCount, 0);
+        const submittedMarksEntries = assignmentStats.reduce((sum, a) => sum + a.marksCount, 0);
+        const submissionPercentage = totalMarksEntries > 0 ? Math.round((submittedMarksEntries / totalMarksEntries) * 100) : 0;
+
+        // All marks across assignments (already fetched above)
+        const allInternals = assignmentStats.flatMap(a => []);
+        const avgPerformance = classPerformance.length > 0
+            ? (classPerformance.reduce((s, a) => s + a.average, 0) / classPerformance.length).toFixed(1)
+            : '0.0';
 
         const timetable = await prisma.timetable.findMany({ where: { facultyId } });
         const classesThisWeek = timetable.length;
 
-        let allMarks = [];
-        for (const assignment of assignments) {
-            const marks = await prisma.marks.findMany({
-                where: { subjectId: assignment.subject.id, internal: { not: null } },
-                select: { internal: true }
-            });
-            allMarks = [...allMarks, ...marks.map(m => m.internal)];
-        }
+        // Real weekly attendance trend — last 5 weeks
+        const now = new Date();
+        const weeklyTrend = [];
+        for (let w = 4; w >= 0; w--) {
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - (w * 7) - now.getDay());
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
 
-        const avgPerformance = allMarks.length > 0 ? (allMarks.reduce((a, b) => a + b, 0) / allMarks.length).toFixed(1) : 0;
+            const startStr = weekStart.toISOString().split('T')[0];
+            const endStr = weekEnd.toISOString().split('T')[0];
 
-        let totalMarksEntries = 0;
-        let submittedMarksEntries = 0;
-
-        for (const assignment of assignments) {
-            const deptCriteriaStats = await getDeptCriteria(assignment.department || assignment.subject.department);
-            const studentsCount = await prisma.student.count({
+            const records = await prisma.studentAttendance.findMany({
                 where: {
-                    ...deptCriteriaStats,
-                    semester: assignment.subject.semester,
-                    section: assignment.section
-                }
+                    subjectId: { in: assignments.map(a => a.subject.id) },
+                    date: { gte: startStr, lte: endStr }
+                },
+                select: { status: true }
             });
-            const marksCount = await prisma.marks.count({
-                where: { subjectId: assignment.subject.id, internal: { not: null } }
-            });
-            totalMarksEntries += studentsCount;
-            submittedMarksEntries += marksCount;
-        }
 
-        const submissionPercentage = totalMarksEntries > 0 ? Math.round((submittedMarksEntries / totalMarksEntries) * 100) : 0;
+            const total = records.length;
+            const present = records.filter(r => r.status === 'PRESENT' || r.status === 'OD').length;
+            const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+            weeklyTrend.push({ week: `Week ${5 - w}`, rate });
+        }
 
         res.json({
             assignedSubjects,
@@ -396,11 +402,7 @@ const getFacultyDashboardStats = async (req, res) => {
                 { name: 'Submitted', value: submissionPercentage, color: '#10b981' },
                 { name: 'Pending', value: 100 - submissionPercentage, color: '#f59e0b' }
             ],
-            attendanceTrend: [
-                { week: 'Week 1', rate: 88 }, { week: 'Week 2', rate: 92 },
-                { week: 'Week 3', rate: 85 }, { week: 'Week 4', rate: 90 },
-                { week: 'Week 5', rate: 87 }
-            ]
+            attendanceTrend: weeklyTrend
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

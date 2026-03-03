@@ -23,18 +23,29 @@ const updateMarksForAdmin = async (req, res) => {
         const subId = parseInt(subjectId);
 
         await prisma.$transaction(async (tx) => {
+            const ALLOWED_MARK_FIELDS = [
+                'cia1_test', 'cia1_assignment', 'cia1_attendance',
+                'cia2_test', 'cia2_assignment', 'cia2_attendance',
+                'cia3_test', 'cia3_assignment', 'cia3_attendance'
+            ];
             for (const m of marksData) {
                 const sId = parseInt(m.studentId);
                 const currentMark = await tx.marks.findUnique({
                     where: { studentId_subjectId: { studentId: sId, subjectId: subId } }
                 });
 
-                const { internal } = markService.calculateInternalMarks(currentMark, m.data);
+                // Only allow whitelisted fields to prevent injection
+                const safeData = {};
+                for (const field of ALLOWED_MARK_FIELDS) {
+                    if (m.data[field] !== undefined) safeData[field] = m.data[field];
+                }
+
+                const { internal } = markService.calculateInternalMarks(currentMark, safeData);
 
                 await tx.marks.upsert({
                     where: { studentId_subjectId: { studentId: sId, subjectId: subId } },
                     update: {
-                        ...m.data,
+                        ...safeData,
                         internal,
                         isApproved: true,
                         isApproved_cia1: true,
@@ -46,7 +57,7 @@ const updateMarksForAdmin = async (req, res) => {
                     create: {
                         studentId: sId,
                         subjectId: subId,
-                        ...m.data,
+                        ...safeData,
                         internal,
                         isApproved: true,
                         isApproved_cia1: true,
@@ -203,8 +214,9 @@ const approveAllMarks = async (req, res) => {
             updateData.isLocked_cia2 = true;
             updateData.isLocked_cia3 = true;
         }
+        // Only approve records that have actual marks entered
         await prisma.marks.updateMany({
-            where: { subjectId: parseInt(subjectId) },
+            where: { subjectId: parseInt(subjectId), internal: { not: null } },
             data: updateData
         });
         res.json({ message: `Approved all marks for subject` });

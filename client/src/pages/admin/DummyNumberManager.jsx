@@ -30,6 +30,7 @@ const DummyNumberManager = () => {
   const [boardCode, setBoardCode] = useState("");
   const [qpCode, setQpCode] = useState("");
   const [absentStudentIds, setAbsentStudentIds] = useState([]);
+  const [scriptNumbers, setScriptNumbers] = useState({}); // { [mappingId]: string }
 
   useEffect(() => {
     const fetchDepts = async () => {
@@ -252,8 +253,7 @@ const DummyNumberManager = () => {
     let slNo = 1;
 
     presentStudents.forEach((m) => {
-      const scriptInput = document.getElementById(`script-${m.id}`);
-      const scriptNo = scriptInput ? scriptInput.value : "";
+      const scriptNo = scriptNumbers[m.id] || "";
 
       worksheet.addRow({
         slno: slNo++,
@@ -519,6 +519,8 @@ const DummyNumberManager = () => {
                     <input
                       type="text"
                       id={`script-${m.id}`}
+                      value={scriptNumbers[m.id] || ""}
+                      onChange={(e) => setScriptNumbers(prev => ({ ...prev, [m.id]: e.target.value }))}
                       disabled={isLocked}
                       className="w-full bg-transparent border-b border-gray-200 focus:border-blue-500 outline-none text-center font-mono text-xs"
                     />

@@ -13,7 +13,7 @@ const login = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         if (user.isDisabled) {
@@ -23,7 +23,7 @@ const login = async (req, res) => {
         const passwordIsValid = await bcrypt.compare(password, user.password);
 
         if (!passwordIsValid) {
-            return res.status(401).json({ message: 'Invalid password' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // Update last login
@@ -35,7 +35,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: '2h' } // 2 hours
+            { expiresIn: '8h' }
         );
 
         res.status(200).json({
