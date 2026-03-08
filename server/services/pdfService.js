@@ -436,20 +436,20 @@ exports.generateConsolidatedTabulationSheet = (res, data) => {
     const drawLine = (x1, y1, x2, y2) => doc.moveTo(x1, y1).lineTo(x2, y2).stroke();
 
     const drawEnhancedRow = (row, isHeader = false) => {
-        const rowH = isHeader ? 50 : 25;
+        const rowH = isHeader ? 60 : 32;
         if (y + rowH > doc.page.height - 40) {
             doc.addPage();
             y = 30; // reset y on new page
         }
 
         doc.rect(M, y, CW, rowH).stroke();
-        doc.font(isHeader ? 'Helvetica-Bold' : 'Helvetica').fontSize(isHeader ? 7 : 7);
+        doc.font(isHeader ? 'Helvetica-Bold' : 'Helvetica').fontSize(isHeader ? 9 : 9);
 
         let curX = M;
         // S.No
-        doc.text(row.sno || '', curX, y + (rowH / 2) - 3, { width: colWidths.sno, align: 'center' }); curX += colWidths.sno; drawLine(curX, y, curX, y + rowH);
+        doc.text(row.sno || '', curX, y + (rowH / 2) - 4, { width: colWidths.sno, align: 'center' }); curX += colWidths.sno; drawLine(curX, y, curX, y + rowH);
         // Register No
-        doc.text(row.regno || '', curX, y + (rowH / 2) - 3, { width: colWidths.regno, align: 'center' }); curX += colWidths.regno; drawLine(curX, y, curX, y + rowH);
+        doc.text(row.regno || '', curX, y + (rowH / 2) - 4, { width: colWidths.regno, align: 'center' }); curX += colWidths.regno; drawLine(curX, y, curX, y + rowH);
 
         // Subjects
         subjects.forEach(sub => {
@@ -459,66 +459,73 @@ exports.generateConsolidatedTabulationSheet = (res, data) => {
 
             if (isHeader) {
                 // Subject Code Header
-                doc.fontSize(7).text(sub.code, bx, y + 4, { width: bw, align: 'center' });
-                drawLine(bx, y + 14, bx + bw, y + 14);
+                doc.fontSize(9).text(sub.code, bx, y + 6, { width: bw, align: 'center' });
+                drawLine(bx, y + 18, bx + bw, y + 18);
 
-                const subY = y + 14;
+                const subY = y + 18;
                 let sx = bx;
-                doc.fontSize(5);
+                doc.fontSize(6);
 
                 // Sub-headers: Int, P-Ext, T-Ext, Total
-                doc.text('Int', sx, subY + 12, { width: bw * subParts.int, align: 'center' }); sx += bw * subParts.int; drawLine(sx, subY, sx, y + rowH);
-                doc.text('P-Ext', sx, subY + 12, { width: bw * subParts.pext, align: 'center' }); sx += bw * subParts.pext; drawLine(sx, subY, sx, y + rowH);
-                doc.text('T-Ext', sx, subY + 12, { width: bw * subParts.text, align: 'center' }); sx += bw * subParts.text; drawLine(sx, subY, sx, y + rowH);
-                doc.text('Total', sx, subY + 12, { width: bw * subParts.total, align: 'center' }); sx += bw * subParts.total; drawLine(sx, subY, sx, y + rowH);
+                doc.text('Int', sx, subY + 14, { width: bw * subParts.int, align: 'center' }); sx += bw * subParts.int; drawLine(sx, subY, sx, y + rowH);
+                doc.text('P-E', sx, subY + 14, { width: bw * subParts.pext, align: 'center' }); sx += bw * subParts.pext; drawLine(sx, subY, sx, y + rowH);
+                doc.text('T-E', sx, subY + 14, { width: bw * subParts.text, align: 'center' }); sx += bw * subParts.text; drawLine(sx, subY, sx, y + rowH);
+                doc.text('Tot', sx, subY + 14, { width: bw * subParts.total, align: 'center' }); sx += bw * subParts.total; drawLine(sx, subY, sx, y + rowH);
 
-                doc.fontSize(5);
-                doc.text('A-Grd', sx, subY + 12, { width: bw * subParts.agrade, align: 'center' }); sx += bw * subParts.agrade; drawLine(sx, subY, sx, y + rowH);
-                doc.text('R-Grd', sx, subY + 12, { width: bw * subParts.rgrade, align: 'center' });
+                doc.fontSize(6);
+                doc.text('A-G', sx, subY + 14, { width: bw * subParts.agrade, align: 'center' }); sx += bw * subParts.agrade; drawLine(sx, subY, sx, y + rowH);
+                doc.text('R-G', sx, subY + 14, { width: bw * subParts.rgrade, align: 'center' });
 
                 // Max marks line
-                doc.fontSize(4.5).fillColor('#444');
+                doc.fontSize(5.5).fillColor('#444');
                 let mx = bx;
                 const intMax = isIntegrated ? '50' : (sub.subjectCategory === 'LAB' ? '60' : '40');
-                const extMax = isIntegrated ? '100(50)' : (sub.subjectCategory === 'LAB' ? '100(40)' : '100(60)');
+                const extMax = isIntegrated ? '50' : (sub.subjectCategory === 'LAB' ? '40' : '60');
 
-                doc.text(intMax, mx, subY + 2, { width: bw * subParts.int, align: 'center' }); mx += bw * subParts.int;
-                doc.text(sub.subjectCategory === 'LAB' || isIntegrated ? extMax : '', mx, subY + 2, { width: bw * subParts.pext, align: 'center' }); mx += bw * subParts.pext;
-                doc.text(sub.subjectCategory === 'THEORY' || isIntegrated ? extMax : '', mx, subY + 2, { width: bw * subParts.text, align: 'center' }); mx += bw * subParts.text;
-                doc.text('100', mx, subY + 2, { width: bw * subParts.total, align: 'center' });
+                doc.text(intMax, mx, subY + 3, { width: bw * subParts.int, align: 'center' }); mx += bw * subParts.int;
+                doc.text(sub.subjectCategory === 'LAB' || isIntegrated ? extMax : '', mx, subY + 3, { width: bw * subParts.pext, align: 'center' }); mx += bw * subParts.pext;
+                doc.text(sub.subjectCategory === 'THEORY' || isIntegrated ? extMax : '', mx, subY + 3, { width: bw * subParts.text, align: 'center' }); mx += bw * subParts.text;
+                doc.text('100', mx, subY + 3, { width: bw * subParts.total, align: 'center' });
                 doc.fillColor('#000');
             } else {
                 const mark = row.marks[sub.code] || {};
                 let sx = bx;
-                doc.fontSize(6);
+                doc.fontSize(8);
 
                 // Int
-                doc.text(mark.internal != null ? Math.round(mark.internal * 10) / 10 : '-', sx, y + 9, { width: bw * subParts.int, align: 'center' }); sx += bw * subParts.int; drawLine(sx, y, sx, y + rowH);
+                doc.text(mark.internal != null ? Math.round(mark.internal).toString() : '-', sx, y + 10, { width: bw * subParts.int, align: 'center' }); sx += bw * subParts.int; drawLine(sx, y, sx, y + rowH);
 
                 // P-Ext
-                doc.text(mark.labExt != null ? Math.round(mark.labExt * 10) / 10 : '-', sx, y + 9, { width: bw * subParts.pext, align: 'center' }); sx += bw * subParts.pext; drawLine(sx, y, sx, y + rowH);
+                doc.text(mark.labExt != null ? Math.round(mark.labExt).toString() : '-', sx, y + 10, { width: bw * subParts.pext, align: 'center' }); sx += bw * subParts.pext; drawLine(sx, y, sx, y + rowH);
 
                 // T-Ext
-                doc.text(mark.theoryExt != null ? Math.round(mark.theoryExt * 10) / 10 : '-', sx, y + 9, { width: bw * subParts.text, align: 'center' }); sx += bw * subParts.text; drawLine(sx, y, sx, y + rowH);
+                doc.text(mark.theoryExt != null ? Math.round(mark.theoryExt).toString() : '-', sx, y + 10, { width: bw * subParts.text, align: 'center' }); sx += bw * subParts.text; drawLine(sx, y, sx, y + rowH);
 
                 // Total
-                doc.font('Helvetica-Bold').text(mark.total != null ? Math.round(mark.total).toString() : '-', sx, y + 9, { width: bw * subParts.total, align: 'center' }); sx += bw * subParts.total; drawLine(sx, y, sx, y + rowH);
+                doc.font('Helvetica-Bold').text(mark.total != null ? Math.round(mark.total).toString() : '-', sx, y + 10, { width: bw * subParts.total, align: 'center' }); sx += bw * subParts.total; drawLine(sx, y, sx, y + rowH);
 
                 // Grades (A and R)
-                doc.font('Helvetica').fontSize(mark.grade?.length > 2 ? 5 : 6);
-                doc.text(mark.grade || '-', sx, y + 9, { width: bw * subParts.agrade, align: 'center' }); sx += bw * subParts.agrade; drawLine(sx, y, sx, y + rowH);
-                doc.text(mark.grade || '-', sx, y + 9, { width: bw * subParts.rgrade, align: 'center' });
+                doc.font('Helvetica').fontSize(mark.grade?.length > 2 ? 6 : 8);
+                doc.text(mark.grade || '-', sx, y + 10, { width: bw * subParts.agrade, align: 'center' }); sx += bw * subParts.agrade; drawLine(sx, y, sx, y + rowH);
+                doc.text(mark.grade || '-', sx, y + 10, { width: bw * subParts.rgrade, align: 'center' });
                 doc.font('Helvetica');
             }
             curX += bw; drawLine(curX, y, curX, y + rowH);
         });
 
         // Stats at the end
-        doc.fontSize(7);
-        doc.text(row.gpa || '', curX, y + 9, { width: statCols.gpa, align: 'center' }); curX += statCols.gpa; drawLine(curX, y, curX, y + rowH);
-        doc.text(row.cgpa || '', curX, y + 9, { width: statCols.cgpa, align: 'center' }); curX += statCols.cgpa; drawLine(curX, y, curX, y + rowH);
-        doc.text(row.cr || '', curX, y + 9, { width: statCols.cr, align: 'center' }); curX += statCols.cr; drawLine(curX, y, curX, y + rowH);
-        doc.text(row.result || '', curX, y + 9, { width: statCols.result, align: 'center' });
+        doc.fontSize(8.5);
+        doc.text(row.gpa || '0.00', curX, y + 10, { width: statCols.gpa, align: 'center' }); curX += statCols.gpa; drawLine(curX, y, curX, y + rowH);
+        doc.text(row.cgpa || '0.00', curX, y + 10, { width: statCols.cgpa, align: 'center' }); curX += statCols.cgpa; drawLine(curX, y, curX, y + rowH);
+        doc.text(row.cr || '0', curX, y + 10, { width: statCols.cr, align: 'center' }); curX += statCols.cr; drawLine(curX, y, curX, y + rowH);
+        
+        let status = row.result;
+        if (status === 'PASS') doc.fillColor('#006400');
+        else if (status === 'FAIL') doc.fillColor('#8B0000');
+        else doc.fillColor('#444444');
+        
+        doc.text(status || 'PENDING', curX, y + 10, { width: statCols.result, align: 'center' });
+        doc.fillColor('#000000');
 
         y += rowH;
     };
@@ -535,6 +542,10 @@ exports.generateConsolidatedTabulationSheet = (res, data) => {
 
     // Draw Data
     data.students.forEach((s, idx) => {
+        let displayStatus = 'PENDING';
+        if (s.resultStatus === 'PASS') displayStatus = 'PASS';
+        else if (s.resultStatus === 'FAIL') displayStatus = 'FAIL';
+
         drawEnhancedRow({
             sno: (idx + 1).toString(),
             regno: s.registerNumber,
@@ -542,7 +553,7 @@ exports.generateConsolidatedTabulationSheet = (res, data) => {
             gpa: s.gpa?.toFixed(2),
             cgpa: s.cgpa?.toFixed(2),
             cr: s.earnedCredits?.toString(),
-            result: s.resultStatus === 'PASS' ? 'PASS' : 'FAIL'
+            result: displayStatus
         });
     });
 

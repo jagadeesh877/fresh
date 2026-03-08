@@ -285,7 +285,7 @@ const EndSemMarksEntry = () => {
             <div className="bg-white p-8 rounded-[40px] shadow-xl shadow-blue-900/5 border border-gray-100 mb-8 relative group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-100 transition-colors pointer-events-none"></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative z-[50]">
                     {!isYear1 && (
                         <div className="z-50 relative">
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">
@@ -322,7 +322,6 @@ const EndSemMarksEntry = () => {
                                     semester: e.target.value,
                                     year: year.toString(),
                                     subjectId: "",
-                                    department: "",
                                 });
                             }}
                         >
@@ -380,7 +379,7 @@ const EndSemMarksEntry = () => {
 
                 {/* Selected subject info */}
                 {selectedSubject && (
-                    <div className="mt-8 pt-8 border-t border-gray-50 flex items-center gap-6 flex-wrap relative z-10 animate-slideIn">
+                    <div className="mt-8 pt-8 border-t border-gray-50 flex items-center gap-6 flex-wrap relative z-0 animate-slideIn">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Target Module</span>
                             <div className="flex items-center gap-3">

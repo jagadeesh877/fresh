@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   X,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
@@ -166,6 +167,24 @@ const ArrearManagement = () => {
       setLoading(false);
     }
   };
+  
+  const handleSyncArrears = async () => {
+    const sem = window.prompt("Enter the current semester to sync arrears from (e.g., 4):");
+    if (!sem) return;
+    
+    try {
+      setFetching(true);
+      toast.loading("Syncing arrears from results...", { id: "sync-arrears" });
+      const res = await api.post("/admin/arrears/auto-generate", { semester: sem });
+      toast.success(res.data.message || "Sync complete", { id: "sync-arrears" });
+      fetchArrears();
+    } catch (err) {
+      console.error("Sync error:", err);
+      toast.error(err.response?.data?.message || "Failed to sync arrears", { id: "sync-arrears" });
+    } finally {
+      setFetching(false);
+    }
+  };
 
   return (
     <div className="p-8 pb-24">
@@ -179,13 +198,29 @@ const ArrearManagement = () => {
             exam session.
           </p>
         </div>
-        <div>
+        <div className="flex gap-4">
           <button
             onClick={downloadTemplate}
-            className="bg-green-600 text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-black tracking-wider shadow-lg hover:bg-green-700 transition-all"
+            className="bg-white text-[#003B73] border-2 border-[#003B73] px-6 py-3 rounded-2xl flex items-center gap-2 font-black tracking-wider shadow-sm hover:bg-blue-50 transition-all"
           >
             <FileSpreadsheet size={20} /> TEMPLATE
           </button>
+          <button
+            onClick={handleSyncArrears}
+            className="bg-[#003B73] text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-black tracking-wider shadow-lg hover:bg-[#002850] transition-all"
+          >
+            <RefreshCw size={20} className={fetching ? "animate-spin" : ""} /> REFRESH FROM RESULTS
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 mb-8 flex items-center gap-4 animate-slideIn">
+        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-50">
+          <AlertCircle size={24} />
+        </div>
+        <div>
+          <p className="font-black text-[#003B73]">Automatic Generation Active</p>
+          <p className="text-sm text-blue-700 font-bold opacity-80">Students with failing grades are now automatically added to this section when marks are calculated or published.</p>
         </div>
       </div>
 

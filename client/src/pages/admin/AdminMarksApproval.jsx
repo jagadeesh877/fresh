@@ -10,7 +10,8 @@ import {
   Users,
   BookOpen,
   Unlock,
-  RotateCcw
+  RotateCcw,
+  ChevronLeft
 } from "lucide-react";
 
 const AdminMarksApproval = () => {
@@ -245,12 +246,12 @@ const AdminMarksApproval = () => {
       <div className="w-full animate-fadeIn p-4">
         <button
           onClick={handleBack}
-          className="mb-8 flex items-center gap-2 text-[#003B73] hover:text-blue-800 font-black text-sm uppercase tracking-widest transition-all group"
+          className="mb-8 flex items-center gap-3 text-[#003B73] hover:text-blue-700 font-black text-sm uppercase tracking-widest transition-all group"
         >
-          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-all">
-            ←
+          <div className="w-10 h-10 rounded-2xl bg-white shadow-lg shadow-blue-900/5 flex items-center justify-center group-hover:bg-[#003B73] group-hover:text-white transition-all transform group-active:scale-90">
+            <ChevronLeft size={20} />
           </div>
-          Back to Overview
+          <span>Back to Overview</span>
         </button>
 
         <div className="bg-white rounded-[40px] shadow-xl shadow-blue-900/5 border border-gray-100 p-10 mb-10">
@@ -647,9 +648,12 @@ const AdminMarksApproval = () => {
             {viewMode === 'grid' && (
               <button
                 onClick={() => setViewMode('selection')}
-                className="mb-4 flex items-center gap-2 text-blue-600 font-black text-xs tracking-[0.2em] uppercase hover:gap-3 transition-all"
+                className="mb-6 flex items-center gap-3 text-[#003B73] hover:text-blue-700 font-black text-sm uppercase tracking-widest transition-all group"
               >
-                ← Back to modules
+                <div className="w-10 h-10 rounded-2xl bg-white shadow-lg shadow-blue-900/5 flex items-center justify-center group-hover:bg-[#003B73] group-hover:text-white transition-all transform group-active:scale-90">
+                  <ChevronLeft size={20} />
+                </div>
+                <span>Back to Modules</span>
               </button>
             )}
             <h1 className="text-6xl font-black text-[#003B73] tracking-tighter mb-4 leading-none">

@@ -59,6 +59,27 @@ const ExamControlCenter = () => {
     }
   };
 
+  const handleCalculateGPAs = async () => {
+    if (!filters.department || !filters.semester) {
+      toast.error("Please select criteria first");
+      return;
+    }
+
+    setLoading(true);
+    const toastId = toast.loading("Processing GPA calculations...");
+    try {
+      await api.post("/exam/calculate-bulk-gpa", filters);
+      toast.success("GPAs calculated successfully", { id: toastId });
+      // Refresh results to show new GPA values
+      fetchResults();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to calculate GPAs", { id: toastId });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -177,10 +198,19 @@ const ExamControlCenter = () => {
         <button
           onClick={fetchResults}
           disabled={loading || !filters.department || !filters.semester}
-          className="bg-[#003B73] text-white h-[52px] px-8 rounded-2xl hover:bg-blue-800 disabled:bg-gray-100 disabled:text-gray-400 transition-all font-black flex items-center gap-2"
+          className="bg-white border-2 border-[#003B73] text-[#003B73] h-[52px] px-8 rounded-2xl hover:bg-blue-50 disabled:bg-gray-100 disabled:text-gray-400 transition-all font-black flex items-center gap-2"
         >
           {loading ? <RefreshCw className="animate-spin" size={20} /> : <Search size={20} />}
           Fetch Results
+        </button>
+
+        <button
+          onClick={handleCalculateGPAs}
+          disabled={loading || !filters.department || !filters.semester}
+          className="bg-[#003B73] text-white h-[52px] px-8 rounded-2xl hover:bg-blue-800 disabled:bg-gray-100 disabled:text-gray-400 transition-all font-black flex items-center gap-2 shadow-lg shadow-blue-900/20"
+        >
+          {loading ? <RefreshCw className="animate-spin" size={20} /> : <Award size={20} />}
+          Process GPAs
         </button>
       </div>
 

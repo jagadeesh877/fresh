@@ -369,31 +369,35 @@ const ExternalMarkEntry = () => {
                   onChange={e => setPdfMeta(p => ({ ...p, dateSession: e.target.value }))}
                 />
               </div>
-              <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
-                  Question Paper Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="N54702"
-                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold focus:border-blue-600 outline-none"
-                  value={pdfMeta.qpCode}
-                  onChange={e => setPdfMeta(p => ({ ...p, qpCode: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
-                  Starting Packet No
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="1"
-                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold focus:border-blue-600 outline-none"
-                  value={pdfMeta.packetNo}
-                  onChange={e => setPdfMeta(p => ({ ...p, packetNo: e.target.value }))}
-                />
-              </div>
+              {!isLABView && (
+                <>
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
+                      Question Paper Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="N54702"
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold focus:border-blue-600 outline-none"
+                      value={pdfMeta.qpCode}
+                      onChange={e => setPdfMeta(p => ({ ...p, qpCode: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
+                      Starting Packet No
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="1"
+                      className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold focus:border-blue-600 outline-none"
+                      value={pdfMeta.packetNo}
+                      onChange={e => setPdfMeta(p => ({ ...p, packetNo: e.target.value }))}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex gap-4">
